@@ -1,5 +1,16 @@
 # llm_stock_report
 
+[![License](https://img.shields.io/github/license/miaohancheng/llm_stock_report)](https://github.com/miaohancheng/llm_stock_report/blob/main/LICENSE)
+[![Daily CN](https://img.shields.io/github/actions/workflow/status/miaohancheng/llm_stock_report/daily_cn.yml?label=Daily%20CN)](https://github.com/miaohancheng/llm_stock_report/actions/workflows/daily_cn.yml)
+[![Daily HK](https://img.shields.io/github/actions/workflow/status/miaohancheng/llm_stock_report/daily_hk.yml?label=Daily%20HK)](https://github.com/miaohancheng/llm_stock_report/actions/workflows/daily_hk.yml)
+[![Daily US](https://img.shields.io/github/actions/workflow/status/miaohancheng/llm_stock_report/daily_us.yml?label=Daily%20US)](https://github.com/miaohancheng/llm_stock_report/actions/workflows/daily_us.yml)
+[![Weekly Retrain](https://img.shields.io/github/actions/workflow/status/miaohancheng/llm_stock_report/weekly_retrain.yml?label=Weekly%20Retrain)](https://github.com/miaohancheng/llm_stock_report/actions/workflows/weekly_retrain.yml)
+[![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+
+**AI + 传统量化双驱动：** 不是单纯的 LLM 闲聊，而是基于 LightGBM 的客观预测辅助。  
+**开箱即用的自动化：** 内置完整的 GitHub Actions 工作流，无需服务器即可白嫖算力。  
+**支持本地/私有化部署：** 全面兼容本地大语言模型，零 API 成本运行。  
+
 LLM daily stock summary + next-day prediction for CN/US/HK markets, with scheduled GitHub Actions and Telegram delivery.
 
 简体中文 | [English](#english)
@@ -9,7 +20,20 @@ LLM daily stock summary + next-day prediction for CN/US/HK markets, with schedul
 - GitHub Actions 配置手册（中文）: [docs/github-actions-setup.md](docs/github-actions-setup.md)
 - GitHub Actions setup guide (EN): [docs/github-actions-setup_EN.md](docs/github-actions-setup_EN.md)
 
+## Pipeline
+```mermaid
+flowchart LR
+  A["AKShare获取数据"] --> B["特征工程 / 缓存"]
+  B --> C["LightGBM预测"]
+  C --> D["新闻抓取"]
+  D --> E["大模型生成"]
+  E --> F["Telegram推送"]
+```
+
 ## 中文
+
+### 推送预览
+![Telegram Summary Preview](docs/assets/telegram-summary-preview.svg)
 
 ### 项目功能
 - A股使用 `AKShare`，美股/港股使用 `yfinance` 拉取历史行情
@@ -95,6 +119,9 @@ LLM 至少配置一组：
 ---
 
 ## English
+
+### Preview
+![Telegram Summary Preview](docs/assets/telegram-summary-preview.svg)
 
 ### Features
 - Fetches CN history via `AKShare` and US/HK history via `yfinance`
