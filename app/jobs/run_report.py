@@ -35,6 +35,28 @@ from app.report.telegram_sender import TelegramSender
 logger = logging.getLogger(__name__)
 
 
+def _is_en(language: str) -> bool:
+    return (language or "").strip().lower() == "en"
+
+
+def _summary_title(market: str, asof_date: str, language: str) -> str:
+    if _is_en(language):
+        return f"[{market.upper()}] {asof_date} Daily Summary"
+    return f"[{market.upper()}] {asof_date} 日报摘要"
+
+
+def _failure_title(market: str, asof_date: str, language: str) -> str:
+    if _is_en(language):
+        return f"[{market.upper()}] {asof_date} Job Failed"
+    return f"[{market.upper()}] {asof_date} 任务失败"
+
+
+def _critical_failure_msg(exc: Exception, language: str) -> str:
+    if _is_en(language):
+        return f"Critical pipeline failure: {exc}"
+    return f"关键链路失败: {exc}"
+
+
 def _load_symbols(cfg: AppConfig, market: str) -> list[str]:
     universe = load_universe(cfg.project_root)
     symbols = [normalize_symbol(s, market) for s in universe.get(market, [])]
@@ -105,7 +127,7 @@ def _send_failure_alert(cfg: AppConfig, market: str, asof_date: str, message: st
         limit=cfg.detail_message_char_limit,
     )
     if sender.enabled:
-        title = f"[{market.upper()}] {asof_date} 任务失败"
+        title = _failure_title(market, asof_date, cfg.report_language)
         try:
             sender.send_summary(title, message)
         except Exception as exc:
@@ -125,6 +147,7 @@ def main() -> int:
     args = build_arg_parser().parse_args()
 
     cfg = load_config()
+    report_language = cfg.report_language
     llm_model_for_meta = (
         f"gemini:{cfg.gemini_model}"
         if cfg.llm_provider == "gemini"
@@ -226,6 +249,7 @@ def main() -> int:
                     feature_snapshot=feature_snapshot,
                     news_items=news_items,
                     provider_used=provider_used,
+                    language=report_language,
                 )
             except LLMError as exc:
                 logger.warning("Skip symbol %s due to LLM failure: %s", symbol, exc)
@@ -233,7 +257,18 @@ def main() -> int:
                 continue
 
             narratives[symbol] = narrative
-            detail_blocks.append((symbol, render_symbol_detail_markdown(market, asof_str, pred, narrative)))
+            detail_blocks.append(
+                (
+                    symbol,
+                    render_symbol_detail_markdown(
+                        market=market,
+                        asof_date=asof_str,
+                        prediction=pred,
+                        narrative=narrative,
+                        language=report_language,
+                    ),
+                )
+            )
 
         successful_predictions = [p for p in sorted_predictions if p.symbol in narratives]
         market_summary_text: str | None = None
@@ -259,6 +294,7 @@ def main() -> int:
                 market_snapshot=market_snapshot,
                 news_items=market_news_items,
                 provider_used=market_news_provider,
+                language=report_language,
             )
             market_summary_text = market_narrative.summary
             detail_blocks.append(
@@ -269,11 +305,15 @@ def main() -> int:
                         asof_date=asof_str,
                         market_snapshot=market_snapshot,
                         narrative=market_narrative,
+                        language=report_language,
                     ),
                 )
             )
         except LLMError as exc:
-            market_summary_text = f"{market.upper()} 大盘复盘生成失败: {exc}"
+            if _is_en(report_language):
+                market_summary_text = f"{market.upper()} market recap generation failed: {exc}"
+            else:
+                market_summary_text = f"{market.upper()} 大盘复盘生成失败: {exc}"
             logger.warning("Skip market overview due to LLM failure: %s", exc)
 
         summary_md = render_summary_markdown(
@@ -283,6 +323,7 @@ def main() -> int:
             narratives=narratives,
             failed_symbols=failed_symbols,
             market_summary=market_summary_text,
+            language=report_language,
         )
 
         details_md = "\n\n---\n\n".join([detail for _, detail in detail_blocks])
@@ -328,7 +369,7 @@ def main() -> int:
                 limit=cfg.detail_message_char_limit,
             )
             sender.send_report(
-                summary_title=f"[{market.upper()}] {asof_str} 日报摘要",
+                summary_title=_summary_title(market, asof_str, report_language),
                 summary_markdown=summary_md,
                 market_tag=market_tag(market),
                 detail_blocks=detail_blocks,
@@ -340,7 +381,7 @@ def main() -> int:
         end_ts = datetime.now(timezone.utc).isoformat(timespec="seconds")
         logger.error("Critical failure: %s", exc)
         logger.debug(traceback.format_exc())
-        _send_failure_alert(cfg, market, asof_str, f"关键链路失败: {exc}")
+        _send_failure_alert(cfg, market, asof_str, _critical_failure_msg(exc, report_language))
 
         failed_meta = RunMeta(
             run_id=run_id,
@@ -361,7 +402,11 @@ def main() -> int:
         output_dir = cfg.outputs_root / market / asof_str
         write_outputs(
             output_dir=output_dir,
-            summary_markdown=f"# [{market.upper()}] {asof_str} 日报失败\n\n{exc}",
+            summary_markdown=(
+                f"# [{market.upper()}] {asof_str} Daily Report Failed\n\n{exc}"
+                if _is_en(report_language)
+                else f"# [{market.upper()}] {asof_str} 日报失败\n\n{exc}"
+            ),
             details_markdown="",
             predictions=[],
             run_meta=failed_meta,

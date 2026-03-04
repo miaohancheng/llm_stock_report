@@ -8,8 +8,11 @@
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 
 **AI + 传统量化双驱动：** 不是单纯的 LLM 闲聊，而是基于 LightGBM 的客观预测辅助。  
+**AI + Quant Dual Engine:** This is not pure LLM chatting; it is grounded by objective LightGBM-based prediction signals.  
 **开箱即用的自动化：** 内置完整的 GitHub Actions 工作流，无需服务器即可白嫖算力。  
+**Automation Out of the Box:** Built-in end-to-end GitHub Actions workflows, so you can run it without maintaining your own server.  
 **支持本地/私有化部署：** 全面兼容本地大语言模型，零 API 成本运行。  
+**Local / Private Deployment Ready:** Fully compatible with local LLMs for zero API-cost operation.  
 
 LLM daily stock summary + next-day prediction for CN/US/HK markets, with scheduled GitHub Actions and Telegram delivery.
 
@@ -82,6 +85,7 @@ LLM 至少配置一组：
 
 ### 关键可选参数（推荐配置）
 - `LLM_PROVIDER`（`openai` / `gemini` / `ollama`）
+- `REPORT_LANGUAGE`（`zh` / `en`，控制 Telegram 推送与报告文本语言）
 - `STOCK_LIST_CN` / `STOCK_LIST_US` / `STOCK_LIST_HK`（环境变量覆盖股票池）
 - `TRAINING_WINDOW_DAYS`（训练窗口天数，默认 730）
 - `FEATURE_WARMUP_DAYS`（特征预热天数，默认 60）
@@ -170,6 +174,7 @@ Configure at least one LLM path:
 
 ### Important optional knobs
 - `LLM_PROVIDER` (`openai` / `gemini` / `ollama`)
+- `REPORT_LANGUAGE` (`zh` / `en`, controls Telegram/report language)
 - `STOCK_LIST_CN` / `STOCK_LIST_US` / `STOCK_LIST_HK` (env override for universe)
 - `TRAINING_WINDOW_DAYS` (default `730`)
 - `FEATURE_WARMUP_DAYS` (default `60`)

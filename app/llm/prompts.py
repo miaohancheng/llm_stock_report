@@ -13,6 +13,18 @@ SYSTEM_PROMPT = (
     "输出必须是严格 JSON，不包含 markdown 代码块。"
 )
 
+SYSTEM_PROMPT_EN = (
+    "You are a rigorous equity research analyst."
+    "Use only the provided structured inputs and never fabricate facts."
+    "Do not provide guaranteed returns, certainty claims, or insider-information style advice."
+    "If evidence is insufficient, explicitly state uncertainty sources."
+    "Output must be strict JSON without markdown code fences."
+)
+
+
+def get_system_prompt(language: str = "zh") -> str:
+    return SYSTEM_PROMPT_EN if (language or "").strip().lower() == "en" else SYSTEM_PROMPT
+
 
 def build_stock_reasoning_prompt(
     market: str,
@@ -21,20 +33,81 @@ def build_stock_reasoning_prompt(
     latest_close: float,
     feature_snapshot: dict[str, float],
     news_items: list[NewsItem],
+    language: str = "zh",
 ) -> str:
+    language = (language or "zh").strip().lower()
     ordered_features = sorted(feature_snapshot.items(), key=lambda x: x[0])
     feature_lines = [f"- {k}: {v:.6f}" for k, v in ordered_features]
-    feature_block = "\n".join(feature_lines) if feature_lines else "- 无可用技术特征"
+    feature_block = "\n".join(feature_lines) if feature_lines else (
+        "- no technical features available" if language == "en" else "- 无可用技术特征"
+    )
 
     news_lines = []
     for idx, item in enumerate(news_items, start=1):
-        news_lines.append(
-            f"[N{idx}] 标题: {item.title}\n"
-            f"      摘要: {item.snippet[:180]}\n"
-            f"      链接: {item.url}"
-        )
+        if language == "en":
+            news_lines.append(
+                f"[N{idx}] Title: {item.title}\n"
+                f"      Snippet: {item.snippet[:180]}\n"
+                f"      URL: {item.url}"
+            )
+        else:
+            news_lines.append(
+                f"[N{idx}] 标题: {item.title}\n"
+                f"      摘要: {item.snippet[:180]}\n"
+                f"      链接: {item.url}"
+            )
 
-    news_block = "\n".join(news_lines) if news_lines else "无相关新闻"
+    news_block = "\n".join(news_lines) if news_lines else ("No related news" if language == "en" else "无相关新闻")
+
+    if language == "en":
+        return f"""
+Generate an English equity brief from the inputs below. Keep it explainable, traceable, and conservative.
+
+Market: {market}
+Symbol: {symbol}
+Close: {latest_close:.4f}
+Predicted score (score): {prediction.score:.6f}
+Predicted return (pred_return): {prediction.pred_return:.6f}
+Rank: {prediction.rank}
+Long/short label (side): {prediction.side}
+
+Technical snapshot:
+{feature_block}
+
+News evidence:
+{news_block}
+
+Output requirements (all required):
+1) summary <= 50 words, include directional view and uncertainty note
+2) details must cover:
+   - technical conclusion (cite at least 2 indicators)
+   - news conclusion (if no news, state "insufficient news evidence")
+   - risk control trigger or monitor points
+3) risk_points must be 2-4 concrete risks
+4) decision must be one of: Buy|Hold|Trim|Sell|Sell/Hold
+5) trend must be one of: Bullish|Sideways|Bearish|Strong Bearish
+6) urgency must be one of: High|Medium|Low
+7) catalysts must include 1-3 upside catalysts (can be empty)
+8) confidence must be an integer 0-100
+9) evidence_used only allows N1/N2... references from provided news; empty array if none
+10) reliability_notes should explain evidence/data reliability limits
+11) If earnings/guidance/results appear in news, prioritize them in details and catalysts
+
+Output JSON only:
+{{
+  "summary": "single sentence summary",
+  "details": "2-4 paragraph analysis",
+  "decision": "Buy|Hold|Trim|Sell|Sell/Hold",
+  "trend": "Bullish|Sideways|Bearish|Strong Bearish",
+  "urgency": "High|Medium|Low",
+  "risk_points": ["risk 1", "risk 2"],
+  "catalysts": ["catalyst 1", "catalyst 2"],
+  "action_bias": "Bullish|Neutral|Bearish",
+  "confidence": 66,
+  "evidence_used": ["N1", "N2"],
+  "reliability_notes": ["note 1", "note 2"]
+}}
+""".strip()
 
     return f"""
 请基于以下输入生成中文研究简报，并遵守“可解释、可追溯、不过度结论”的原则。
@@ -91,7 +164,9 @@ def build_market_reasoning_prompt(
     asof_date: str,
     market_snapshot: dict,
     news_items: list[NewsItem],
+    language: str = "zh",
 ) -> str:
+    language = (language or "zh").strip().lower()
     benchmark_lines: list[str] = []
     for item in market_snapshot.get("benchmarks", []):
         benchmark_lines.append(
@@ -103,35 +178,102 @@ def build_market_reasoning_prompt(
                 f"ma20_ratio={float(item.get('ma20_ratio', 0.0)):.4f}"
             )
         )
-    benchmark_block = "\n".join(benchmark_lines) if benchmark_lines else "- 无可用基准指数数据"
+    benchmark_block = "\n".join(benchmark_lines) if benchmark_lines else (
+        "- no benchmark index data available" if language == "en" else "- 无可用基准指数数据"
+    )
 
     gainers = market_snapshot.get("gainers", []) or []
     losers = market_snapshot.get("losers", []) or []
-    breadth_block = (
-        f"样本数={int(market_snapshot.get('sample_size', 0))}, "
-        f"上涨={int(market_snapshot.get('up_count', 0))}, "
-        f"下跌={int(market_snapshot.get('down_count', 0))}, "
-        f"平盘={int(market_snapshot.get('flat_count', 0))}, "
-        f"均值涨跌={float(market_snapshot.get('avg_ret_1d', 0.0)):.4f}, "
-        f"中位涨跌={float(market_snapshot.get('median_ret_1d', 0.0)):.4f}"
-    )
+    if language == "en":
+        breadth_block = (
+            f"sample={int(market_snapshot.get('sample_size', 0))}, "
+            f"up={int(market_snapshot.get('up_count', 0))}, "
+            f"down={int(market_snapshot.get('down_count', 0))}, "
+            f"flat={int(market_snapshot.get('flat_count', 0))}, "
+            f"avg_ret_1d={float(market_snapshot.get('avg_ret_1d', 0.0)):.4f}, "
+            f"median_ret_1d={float(market_snapshot.get('median_ret_1d', 0.0)):.4f}"
+        )
+    else:
+        breadth_block = (
+            f"样本数={int(market_snapshot.get('sample_size', 0))}, "
+            f"上涨={int(market_snapshot.get('up_count', 0))}, "
+            f"下跌={int(market_snapshot.get('down_count', 0))}, "
+            f"平盘={int(market_snapshot.get('flat_count', 0))}, "
+            f"均值涨跌={float(market_snapshot.get('avg_ret_1d', 0.0)):.4f}, "
+            f"中位涨跌={float(market_snapshot.get('median_ret_1d', 0.0)):.4f}"
+        )
     gainers_block = "\n".join(
         [f"- {x.get('symbol')}: {float(x.get('ret_1d', 0.0)):.4f}" for x in gainers]
-    ) or "- 无"
+    ) or ("- None" if language == "en" else "- 无")
     losers_block = "\n".join(
         [f"- {x.get('symbol')}: {float(x.get('ret_1d', 0.0)):.4f}" for x in losers]
-    ) or "- 无"
+    ) or ("- None" if language == "en" else "- 无")
 
     news_lines = []
     for idx, item in enumerate(news_items, start=1):
-        news_lines.append(
-            f"[N{idx}] 标题: {item.title}\n"
-            f"      摘要: {item.snippet[:180]}\n"
-            f"      链接: {item.url}"
-        )
-    news_block = "\n".join(news_lines) if news_lines else "无相关新闻"
+        if language == "en":
+            news_lines.append(
+                f"[N{idx}] Title: {item.title}\n"
+                f"      Snippet: {item.snippet[:180]}\n"
+                f"      URL: {item.url}"
+            )
+        else:
+            news_lines.append(
+                f"[N{idx}] 标题: {item.title}\n"
+                f"      摘要: {item.snippet[:180]}\n"
+                f"      链接: {item.url}"
+            )
+    news_block = "\n".join(news_lines) if news_lines else ("No related news" if language == "en" else "无相关新闻")
 
     snapshot_json = json.dumps(market_snapshot, ensure_ascii=False)
+
+    if language == "en":
+        return f"""
+Generate an English market recap for {market.upper()} from the inputs below. Keep it objective and traceable.
+
+Date: {asof_date}
+Market: {market}
+
+Benchmarks:
+{benchmark_block}
+
+Breadth:
+{breadth_block}
+
+Top gainers:
+{gainers_block}
+
+Top losers:
+{losers_block}
+
+News evidence:
+{news_block}
+
+Structured snapshot(JSON):
+{snapshot_json}
+
+Output requirements (all required):
+1) summary <= 70 words with market risk preference and uncertainty
+2) details must include:
+   - benchmark + breadth conclusions
+   - news impact and evidence boundary
+   - 2-3 next-session watchpoints
+3) risk_points: 2-4 concrete risks
+4) confidence: integer 0-100
+5) evidence_used: only N1/N2... references; empty array if none
+6) reliability_notes: reliability caveats
+
+Output JSON only:
+{{
+  "summary": "single sentence summary",
+  "details": "2-4 paragraph recap",
+  "risk_points": ["risk 1", "risk 2"],
+  "action_bias": "Bullish|Neutral|Bearish",
+  "confidence": 62,
+  "evidence_used": ["N1"],
+  "reliability_notes": ["note 1", "note 2"]
+}}
+""".strip()
 
     return f"""
 请基于以下输入生成{market.upper()}市场的大盘复盘，要求“客观、可追溯、不过度结论”。

@@ -17,6 +17,7 @@ llm_max_retries: 6
 llm_retry_base_delay_seconds: 5.0
 llm_retry_max_delay_seconds: 120.0
 llm_retry_jitter_seconds: 1.0
+report_language: zh
 market_index_fetch_enabled: true
 llm_provider: openai
 prediction_top_n: 10

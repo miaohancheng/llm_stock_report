@@ -47,6 +47,7 @@
 OPENAI_MODEL=gpt-4o-mini
 OPENAI_BASE_URL=https://api.openai.com/v1
 LLM_PROVIDER=openai
+REPORT_LANGUAGE=zh
 GEMINI_MODEL=gemini-2.0-flash
 GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
 OLLAMA_BASE_URL=http://127.0.0.1:11434
@@ -78,6 +79,7 @@ STOCK_LIST_HK=HK00700,HK03690,HK09988
 
 说明：
 - `STOCK_LIST_CN/US/HK` 已接入 workflow，会覆盖 `config/universe.yaml`。
+- `REPORT_LANGUAGE` 支持 `zh` 或 `en`，用于控制 Telegram 推送语言。
 - 变量值用英文逗号分隔，不要换行。
 - GitHub Hosted Runner 通常无法访问你本地 `127.0.0.1:11434`，若要在 Actions 用 Ollama 建议 self-hosted runner。
 

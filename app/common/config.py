@@ -49,6 +49,7 @@ class AppConfig:
     llm_retry_base_delay_seconds: float = 5.0
     llm_retry_max_delay_seconds: float = 120.0
     llm_retry_jitter_seconds: float = 1.0
+    report_language: str = "zh"
 
 
 def _read_yaml(path: Path) -> dict[str, Any]:
@@ -95,6 +96,11 @@ def _parse_symbol_list(value: Any) -> list[str]:
     if isinstance(value, str):
         return [x.strip() for x in value.split(",") if x.strip()]
     return [str(value).strip()] if str(value).strip() else []
+
+
+def _normalize_report_language(value: str) -> str:
+    raw = (value or "").strip().lower()
+    return raw if raw in {"zh", "en"} else "zh"
 
 
 def load_config(project_root: Path | None = None) -> AppConfig:
@@ -170,6 +176,9 @@ def load_config(project_root: Path | None = None) -> AppConfig:
         "OLLAMA_BASE_URL",
         str(report_cfg.get("ollama_base_url", "http://127.0.0.1:11434")),
     )
+    report_language = _normalize_report_language(
+        os.getenv("REPORT_LANGUAGE", str(report_cfg.get("report_language", "zh")))
+    )
 
     outputs_root = root / os.getenv("OUTPUTS_ROOT", "outputs")
     models_root = root / os.getenv("MODELS_ROOT", "models")
@@ -219,6 +228,7 @@ def load_config(project_root: Path | None = None) -> AppConfig:
         llm_retry_base_delay_seconds=llm_retry_base_delay_seconds,
         llm_retry_max_delay_seconds=llm_retry_max_delay_seconds,
         llm_retry_jitter_seconds=llm_retry_jitter_seconds,
+        report_language=report_language,
     )
 
 
