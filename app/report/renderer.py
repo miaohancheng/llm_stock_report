@@ -47,6 +47,69 @@ def _default_trend(prediction: PredictionRecord) -> str:
     return "震荡"
 
 
+def _side_label(side: str) -> str:
+    mapping = {
+        "top": "偏多",
+        "bottom": "偏空",
+        "mid": "中性",
+    }
+    return mapping.get((side or "").strip().lower(), "中性")
+
+
+def _format_return_pct(value: float) -> str:
+    return f"{value * 100:+.2f}%"
+
+
+def _market_breadth_comment(up: int, down: int, flat: int) -> str:
+    total = up + down + flat
+    if total <= 0:
+        return "样本不足，无法判断当日市场宽度。"
+    if up > down:
+        return "上涨家数占优，市场短线风险偏好偏强。"
+    if down > up:
+        return "下跌家数占优，市场短线风险偏好偏弱。"
+    return "涨跌家数接近，市场情绪偏中性。"
+
+
+def _explain_feature_metric(key: str, value: float) -> str:
+    if key == "ret_1":
+        direction = "当日上涨" if value > 0 else "当日下跌" if value < 0 else "当日持平"
+        return f"1日收益率，反映短线波动；当前{direction}。"
+    if key == "ret_5":
+        direction = "近5日走强" if value > 0 else "近5日走弱" if value < 0 else "近5日横盘"
+        return f"5日累计收益率，反映周内趋势；当前{direction}。"
+    if key == "ma5_ratio":
+        direction = "高于" if value > 0 else "低于" if value < 0 else "贴近"
+        return f"相对5日均线乖离率；价格{direction}MA5。"
+    if key == "ma10_ratio":
+        direction = "高于" if value > 0 else "低于" if value < 0 else "贴近"
+        return f"相对10日均线乖离率；价格{direction}MA10。"
+    if key == "rsi14":
+        if value >= 70:
+            state = "偏高，注意短线过热"
+        elif value <= 30:
+            state = "偏低，留意超跌反弹"
+        else:
+            state = "处于常态区间"
+        return f"14日RSI动量指标；当前{state}。"
+    if key == "macd":
+        state = "多头动能" if value > 0 else "空头动能" if value < 0 else "多空均衡"
+        return f"MACD趋势动能指标；当前偏{state}。"
+    return "技术指标快照。"
+
+
+def _feature_display_name(key: str) -> str:
+    mapping = {
+        "ret_1": "1日收益率",
+        "ret_5": "5日收益率",
+        "ma5_ratio": "MA5乖离率",
+        "ma10_ratio": "MA10乖离率",
+        "rsi14": "RSI14",
+        "macd": "MACD",
+    }
+    return mapping.get(key, key)
+
+
 def render_summary_markdown(
     market: str,
     asof_date: str,
@@ -68,7 +131,13 @@ def render_summary_markdown(
         trend = n.trend if n else _default_trend(p)
         score_100 = _score_to_dashboard(p.score)
         icon = _decision_icon(decision)
-        rows.append((score_100, f"{icon} {p.symbol}: {decision} | 评分 {score_100} | {trend}"))
+        pred_text = f"{_format_return_pct(p.pred_return)}（{_side_label(p.side)}）"
+        rows.append(
+            (
+                score_100,
+                f"{icon} {p.symbol}: {decision} | 评分 {score_100} | {trend} | 预测 {pred_text}",
+            )
+        )
 
         if decision == "买入":
             buy += 1
@@ -160,7 +229,9 @@ def render_symbol_detail_markdown(
     if narrative.feature_snapshot:
         lines.extend(["", "### 技术面快照"])
         for key, value in sorted(narrative.feature_snapshot.items(), key=lambda x: x[0]):
-            lines.append(f"- {key}: {value:.6f}")
+            metric_name = _feature_display_name(key)
+            explanation = _explain_feature_metric(key, value)
+            lines.append(f"- {metric_name}({key}): {value:.6f}。{explanation}")
 
     lines.extend(["", "## 💡 详细推理", narrative.details])
 
@@ -201,14 +272,21 @@ def render_market_detail_markdown(
     narrative: MarketNarrative,
 ) -> str:
     tag = market_tag(market)
+    up = int(market_snapshot.get("up_count", 0))
+    down = int(market_snapshot.get("down_count", 0))
+    flat = int(market_snapshot.get("flat_count", 0))
+    avg_ret_1d = float(market_snapshot.get("avg_ret_1d", 0.0))
+    median_ret_1d = float(market_snapshot.get("median_ret_1d", 0.0))
     lines = [
         f"# 🌐 [{tag}] {asof_date} 大盘复盘",
         "",
-        f"- news_provider: {narrative.used_provider}",
-        f"- sample_size: {int(market_snapshot.get('sample_size', 0))}",
-        f"- breadth: up={int(market_snapshot.get('up_count', 0))}, down={int(market_snapshot.get('down_count', 0))}, flat={int(market_snapshot.get('flat_count', 0))}",
-        f"- avg_ret_1d: {float(market_snapshot.get('avg_ret_1d', 0.0)):.4f}",
-        f"- median_ret_1d: {float(market_snapshot.get('median_ret_1d', 0.0)):.4f}",
+        "## 市场快照",
+        f"- 新闻来源: {narrative.used_provider}",
+        f"- 样本覆盖: {int(market_snapshot.get('sample_size', 0))} 只股票（用于宽度统计）",
+        f"- 市场宽度: 上涨 {up} / 下跌 {down} / 平盘 {flat}（涨跌家数）",
+        f"- 平均涨跌幅: {avg_ret_1d * 100:+.2f}%（样本算术平均）",
+        f"- 中位涨跌幅: {median_ret_1d * 100:+.2f}%（样本中位数）",
+        f"- 快速解读: {_market_breadth_comment(up, down, flat)}",
         "",
         "## 摘要",
         narrative.summary,
