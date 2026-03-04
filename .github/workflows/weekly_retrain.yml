@@ -1,0 +1,72 @@
+name: Weekly Retrain
+
+on:
+  schedule:
+    - cron: "0 2 * * 0" # Sunday 10:00 Asia/Shanghai
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Retrain date in YYYY-MM-DD"
+        required: false
+        type: string
+
+concurrency:
+  group: llm-stock-report-weekly-retrain
+  cancel-in-progress: false
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        market: [cn, us, hk]
+
+    env:
+      MAX_STOCKS_PER_RUN: ${{ vars.MAX_STOCKS_PER_RUN || '30' }}
+      MODEL_EXPIRE_DAYS: ${{ vars.MODEL_EXPIRE_DAYS || '8' }}
+      STOCK_LIST_CN: ${{ vars.STOCK_LIST_CN }}
+      STOCK_LIST_US: ${{ vars.STOCK_LIST_US }}
+      STOCK_LIST_HK: ${{ vars.STOCK_LIST_HK }}
+      TRAINING_WINDOW_DAYS: ${{ vars.TRAINING_WINDOW_DAYS || '730' }}
+      FEATURE_WARMUP_DAYS: ${{ vars.FEATURE_WARMUP_DAYS || '60' }}
+      HISTORY_PRUNE_BUFFER_DAYS: ${{ vars.HISTORY_PRUNE_BUFFER_DAYS || '60' }}
+      INCREMENTAL_OVERLAP_DAYS: ${{ vars.INCREMENTAL_OVERLAP_DAYS || '7' }}
+      FETCH_MAX_RETRIES: ${{ vars.FETCH_MAX_RETRIES || '5' }}
+      FETCH_RETRY_BASE_DELAY_SECONDS: ${{ vars.FETCH_RETRY_BASE_DELAY_SECONDS || '15' }}
+      FETCH_RETRY_MAX_DELAY_SECONDS: ${{ vars.FETCH_RETRY_MAX_DELAY_SECONDS || '300' }}
+      FETCH_RETRY_JITTER_SECONDS: ${{ vars.FETCH_RETRY_JITTER_SECONDS || '2' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Retrain model
+        run: |
+          RUN_DATE="${{ github.event.inputs.date }}"
+          if [ -z "$RUN_DATE" ]; then
+            RUN_DATE=$(TZ='Asia/Shanghai' date '+%Y-%m-%d')
+          fi
+          python -m app.jobs.run_retrain --market "${{ matrix.market }}" --date "$RUN_DATE"
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: retrain-${{ matrix.market }}-${{ github.run_id }}
+          path: |
+            outputs/**
+            models/**
+          retention-days: 14

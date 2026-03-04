@@ -1,0 +1,19 @@
+max_stocks_per_run: 30
+detail_message_char_limit: 3500
+model_expire_days: 8
+# Optional universe override in config (comma env vars can also override):
+# stock_list_cn: ["SH600519", "SZ000001"]
+# stock_list_us: ["AAPL", "MSFT"]
+# stock_list_hk: ["HK00700", "HK03690"]
+training_window_days: 730
+feature_warmup_days: 60
+history_prune_buffer_days: 60
+incremental_overlap_days: 7
+fetch_max_retries: 5
+fetch_retry_base_delay_seconds: 15.0
+fetch_retry_max_delay_seconds: 300.0
+fetch_retry_jitter_seconds: 2.0
+prediction_top_n: 10
+llm_model: gpt-4o-mini
+openai_base_url: https://api.openai.com/v1
+timezone: Asia/Shanghai

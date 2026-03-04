@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "llm-stock-report"
+version = "0.1.0"
+description = "Daily stock summary and next-day prediction with LLM + Qlib-style pipeline"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "akshare>=1.13.70",
+  "lightgbm>=4.3.0",
+  "numpy>=1.26.0",
+  "pandas>=2.1.0",
+  "python-dateutil>=2.9.0",
+  "PyYAML>=6.0.1",
+  "requests>=2.31.0",
+  "yfinance>=0.2.40",
+]
+
+[project.optional-dependencies]
+qlib = ["pyqlib>=0.9.5"]
+dev = [
+  "pytest>=8.2.0",
+]
+
+[tool.setuptools]
+packages = ["app"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
