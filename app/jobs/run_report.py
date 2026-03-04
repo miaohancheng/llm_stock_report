@@ -21,7 +21,7 @@ from app.model.predictor import build_predictions
 from app.model.qlib_data_builder import build_market_feature_frame, frame_window, save_debug_frames, split_train_predict_frame
 from app.model.registry import ModelBundle, load_latest_model, model_is_expired, save_model_bundle
 from app.model.trainer import train_market_model
-from app.news.aggregator import search_news_with_fallback
+from app.news.aggregator import build_stock_news_queries, search_news_with_fallback
 from app.report.market_overview import build_market_snapshot, market_news_query
 from app.report.renderer import (
     market_tag,
@@ -209,11 +209,9 @@ def main() -> int:
                 "macd": float(feature_row["macd"]),
             }
 
-            query = (
-                f"{symbol} stock latest news" if market == "us" else f"{symbol} 股票 最新消息"
-            )
+            queries = build_stock_news_queries(market=market, symbol=symbol)
             news_items, provider_used = search_news_with_fallback(
-                query=query,
+                query=queries,
                 tavily_api_key=cfg.tavily_api_key,
                 brave_api_key=cfg.brave_api_key,
                 max_results=5,

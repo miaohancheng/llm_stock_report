@@ -37,6 +37,16 @@ class StockNarrative:
     details: str
     used_provider: str
     news_items: list[NewsItem] = field(default_factory=list)
+    decision: str = "观望"
+    trend: str = "震荡"
+    urgency: str = "中"
+    confidence: int = 50
+    risk_points: list[str] = field(default_factory=list)
+    catalysts: list[str] = field(default_factory=list)
+    evidence_used: list[str] = field(default_factory=list)
+    reliability_notes: list[str] = field(default_factory=list)
+    latest_close: float | None = None
+    feature_snapshot: dict[str, float] = field(default_factory=dict)
 
 
 @dataclass

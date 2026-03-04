@@ -60,15 +60,24 @@ def build_stock_reasoning_prompt(
    - 消息面结论（如无新闻需明确“新闻证据不足”）
    - 风险控制（触发条件或观察点）
 3) risk_points 必须给出 2-4 条具体风险，不要写空泛句
-4) confidence 为 0-100 的整数，体现当前结论可靠性
-5) evidence_used 只允许填 [N1], [N2] 这类已提供编号；无新闻则填空数组
-6) reliability_notes 给出数据可靠性说明（例如“仅技术面”“新闻时效不足”）
+4) decision 必须是: 买入|观望|减仓|卖出|卖出/观望
+5) trend 必须是: 看多|震荡|看空|强烈看空
+6) urgency 必须是: 高|中|低
+7) catalysts 给出 1-3 条利好/催化点（可为空数组）
+8) confidence 为 0-100 的整数，体现当前结论可靠性
+9) evidence_used 只允许填 [N1], [N2] 这类已提供编号；无新闻则填空数组
+10) reliability_notes 给出数据可靠性说明（例如“仅技术面”“新闻时效不足”）
+11) 如果新闻中包含财报/业绩/指引信息，优先在 details 与 catalysts 中体现
 
 仅输出 JSON，格式如下：
 {{
   "summary": "一句话摘要，不超过50字",
   "details": "2-4段详细分析，必须包含技术面+消息面+风险",
+  "decision": "买入|观望|减仓|卖出|卖出/观望",
+  "trend": "看多|震荡|看空|强烈看空",
+  "urgency": "高|中|低",
   "risk_points": ["风险1", "风险2"],
+  "catalysts": ["催化1", "催化2"],
   "action_bias": "偏多|中性|偏空",
   "confidence": 66,
   "evidence_used": ["N1", "N2"],

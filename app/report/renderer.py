@@ -13,6 +13,40 @@ def market_tag(market: str) -> str:
     return market.upper()
 
 
+def _score_to_dashboard(score: float) -> int:
+    # Convert z-score-like model output into 0-100 dashboard score.
+    value = int(round(50 + score * 15))
+    return max(0, min(100, value))
+
+
+def _decision_icon(decision: str) -> str:
+    if decision == "买入":
+        return "🟢"
+    if decision == "减仓":
+        return "🟠"
+    if decision in {"卖出", "卖出/观望"}:
+        return "🔴"
+    return "⚪"
+
+
+def _default_decision(prediction: PredictionRecord) -> str:
+    if prediction.side == "top" and prediction.score > 0.8:
+        return "买入"
+    if prediction.side == "bottom" and prediction.score < -0.8:
+        return "卖出"
+    if prediction.side == "bottom":
+        return "减仓"
+    return "观望"
+
+
+def _default_trend(prediction: PredictionRecord) -> str:
+    if prediction.side == "top":
+        return "看多"
+    if prediction.side == "bottom":
+        return "看空"
+    return "震荡"
+
+
 def render_summary_markdown(
     market: str,
     asof_date: str,
@@ -22,35 +56,48 @@ def render_summary_markdown(
     market_summary: str | None = None,
 ) -> str:
     tag = market_tag(market)
-    top = [p for p in predictions if p.side == "top"]
-    bottom = [p for p in predictions if p.side == "bottom"]
+    buy = 0
+    watch = 0
+    trim = 0
+    sell = 0
+
+    rows: list[tuple[int, str]] = []
+    for p in sorted(predictions, key=lambda x: x.rank):
+        n = narratives.get(p.symbol)
+        decision = n.decision if n else _default_decision(p)
+        trend = n.trend if n else _default_trend(p)
+        score_100 = _score_to_dashboard(p.score)
+        icon = _decision_icon(decision)
+        rows.append((score_100, f"{icon} {p.symbol}: {decision} | 评分 {score_100} | {trend}"))
+
+        if decision == "买入":
+            buy += 1
+        elif decision == "减仓":
+            trim += 1
+        elif decision in {"卖出", "卖出/观望"}:
+            sell += 1
+        else:
+            watch += 1
 
     lines = [
-        f"# [{tag}] {asof_date} 日报摘要",
+        f"# 🎯 {asof_date} 决策仪表盘",
         "",
-        f"- 总股票数: {len(predictions) + len(failed_symbols)}",
-        f"- 成功分析: {len(predictions)}",
-        f"- 失败跳过: {len(failed_symbols)}",
-        "",
-        "## Top 信号",
+        f"> [{tag}] 共分析 {len(predictions)} 只股票 | 🟢买入:{buy} 🟡观望:{watch} 🟠减仓:{trim} 🔴卖出:{sell}",
     ]
-
-    for p in top[:10]:
-        summary = narratives.get(p.symbol).summary if p.symbol in narratives else ""
-        lines.append(f"- {p.symbol}: score={p.score:.3f}, pred_return={p.pred_return:.4f} | {summary}")
-
-    lines.extend(["", "## Bottom 信号"])
-    for p in bottom[:10]:
-        summary = narratives.get(p.symbol).summary if p.symbol in narratives else ""
-        lines.append(f"- {p.symbol}: score={p.score:.3f}, pred_return={p.pred_return:.4f} | {summary}")
-
     if failed_symbols:
-        lines.extend(["", "## 失败清单"])
-        for s in failed_symbols:
-            lines.append(f"- {s}")
+        lines.append(f"> 失败跳过: {len(failed_symbols)}")
+
+    lines.extend(["", "## 📊 分析结果摘要", ""])
+    for _, row in sorted(rows, key=lambda x: x[0], reverse=True):
+        lines.append(row)
 
     if market_summary:
-        lines.extend(["", "## 大盘复盘", f"- {market_summary}"])
+        lines.extend(["", "## 🌐 大盘复盘", f"- {market_summary}"])
+
+    if failed_symbols:
+        lines.extend(["", "## ⚠️ 失败清单"])
+        for s in failed_symbols:
+            lines.append(f"- {s}")
 
     lines.append("")
     lines.append("*仅供研究参考，不构成投资建议。*")
@@ -64,29 +111,86 @@ def render_symbol_detail_markdown(
     narrative: StockNarrative,
 ) -> str:
     tag = market_tag(market)
+    score_100 = _score_to_dashboard(prediction.score)
+    decision = narrative.decision or _default_decision(prediction)
+    trend = narrative.trend or _default_trend(prediction)
+    urgency = narrative.urgency or "中"
+    icon = _decision_icon(decision)
+
     lines = [
-        f"# [{tag}] {asof_date} {prediction.symbol}",
+        f"# {icon} {prediction.symbol}",
         "",
-        f"- score: {prediction.score:.4f}",
-        f"- pred_return: {prediction.pred_return:.6f}",
-        f"- rank: {prediction.rank}",
-        f"- side: {prediction.side}",
-        f"- news_provider: {narrative.used_provider}",
+        f"> [{tag}] {asof_date} | {decision} | {trend} | 评分 {score_100}",
         "",
-        "## 摘要",
-        narrative.summary,
-        "",
-        "## 详细推理",
-        narrative.details,
+        "## 📰 重要信息速览",
+        f"- 💭 一句话判断: {narrative.summary}",
+        f"- ⏰ 时效性: {urgency}",
+        f"- 🔎 新闻来源: {narrative.used_provider}",
     ]
 
+    if narrative.catalysts:
+        lines.extend(["", "### ✨ 利好催化"])
+        for x in narrative.catalysts[:3]:
+            lines.append(f"- {x}")
+
+    if narrative.risk_points:
+        lines.extend(["", "### 🚨 风险警报"])
+        for x in narrative.risk_points[:4]:
+            lines.append(f"- {x}")
+
+    lines.extend(
+        [
+            "",
+            "## 📌 核心结论",
+            f"{icon} {decision} | {trend}",
+            f"> 一句话决策: {narrative.summary}",
+            "",
+            "## 📊 数据透视",
+            f"- 量化分数(z): {prediction.score:.4f}",
+            f"- 量化评分: {score_100}/100",
+            f"- 预测收益: {prediction.pred_return:.6f}",
+            f"- 排名: {prediction.rank}",
+            f"- 多空标签: {prediction.side}",
+        ]
+    )
+
+    if narrative.latest_close is not None:
+        lines.append(f"- 最新收盘: {narrative.latest_close:.4f}")
+
+    if narrative.feature_snapshot:
+        lines.extend(["", "### 技术面快照"])
+        for key, value in sorted(narrative.feature_snapshot.items(), key=lambda x: x[0]):
+            lines.append(f"- {key}: {value:.6f}")
+
+    lines.extend(["", "## 💡 详细推理", narrative.details])
+
+    if narrative.evidence_used:
+        lines.extend(["", "### 证据引用", f"- {', '.join(narrative.evidence_used)}"])
+    else:
+        lines.extend(["", "### 证据引用", "- 无（新闻证据不足）"])
+
+    if narrative.reliability_notes:
+        lines.extend(["", "### 数据可靠性说明"])
+        for x in narrative.reliability_notes:
+            lines.append(f"- {x}")
+
     if narrative.news_items:
-        lines.extend(["", "## 新闻证据"])
+        lines.extend(["", "## 📢 最新动态"])
         for item in narrative.news_items:
             lines.append(f"- [{item.title}]({item.url})")
 
-    lines.append("")
-    lines.append("*仅供研究参考，不构成投资建议。*")
+    lines.extend(
+        [
+            "",
+            "---",
+            "",
+            "## 🎯 作战计划（研究参考）",
+            f"- 空仓者: 以 {decision} 观点为主，关注放量与趋势确认后再行动。",
+            f"- 持仓者: 若走势偏离 {trend} 预期，优先执行风险控制。",
+            "",
+            "*仅供研究参考，不构成投资建议。*",
+        ]
+    )
     return "\n".join(lines)
 
 
@@ -98,7 +202,7 @@ def render_market_detail_markdown(
 ) -> str:
     tag = market_tag(market)
     lines = [
-        f"# [{tag}] {asof_date} 大盘复盘",
+        f"# 🌐 [{tag}] {asof_date} 大盘复盘",
         "",
         f"- news_provider: {narrative.used_provider}",
         f"- sample_size: {int(market_snapshot.get('sample_size', 0))}",

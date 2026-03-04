@@ -36,6 +36,44 @@ def _clamp_confidence(value: Any) -> int:
     return max(0, min(100, conf))
 
 
+def _normalize_decision(raw: str, prediction: PredictionRecord) -> str:
+    allowed = {"买入", "观望", "减仓", "卖出", "卖出/观望"}
+    value = (raw or "").strip()
+    if value in allowed:
+        return value
+    if prediction.side == "top" and prediction.score > 0.8:
+        return "买入"
+    if prediction.side == "bottom" and prediction.score < -0.8:
+        return "卖出"
+    if prediction.side == "bottom":
+        return "减仓"
+    return "观望"
+
+
+def _normalize_trend(raw: str, prediction: PredictionRecord) -> str:
+    allowed = {"看多", "震荡", "看空", "强烈看空"}
+    value = (raw or "").strip()
+    if value in allowed:
+        return value
+    if prediction.side == "top":
+        return "看多"
+    if prediction.side == "bottom":
+        return "看空"
+    return "震荡"
+
+
+def _normalize_urgency(raw: str, confidence: int) -> str:
+    allowed = {"高", "中", "低"}
+    value = (raw or "").strip()
+    if value in allowed:
+        return value
+    if confidence >= 75:
+        return "高"
+    if confidence <= 45:
+        return "低"
+    return "中"
+
+
 def _default_fallback(symbol: str, prediction: PredictionRecord, provider: str) -> StockNarrative:
     summary = (
         f"{symbol} 预测分数 {prediction.score:.2f}，"
@@ -50,6 +88,14 @@ def _default_fallback(symbol: str, prediction: PredictionRecord, provider: str) 
         details=details,
         used_provider=provider,
         news_items=[],
+        decision=_normalize_decision("", prediction),
+        trend=_normalize_trend("", prediction),
+        urgency="中",
+        confidence=50,
+        risk_points=[],
+        catalysts=[],
+        evidence_used=[],
+        reliability_notes=["新闻证据不足或LLM解析失败"],
     )
 
 
@@ -91,13 +137,16 @@ def generate_stock_narrative(
     details = str(parsed.get("details") or "").strip()
     action_bias = _normalize_bias(str(parsed.get("action_bias") or ""), prediction)
     confidence = _clamp_confidence(parsed.get("confidence"))
+    decision = _normalize_decision(str(parsed.get("decision") or ""), prediction)
+    trend = _normalize_trend(str(parsed.get("trend") or ""), prediction)
+    urgency = _normalize_urgency(str(parsed.get("urgency") or ""), confidence)
     evidence_used = parsed.get("evidence_used") or []
     reliability_notes = parsed.get("reliability_notes") or []
+    catalysts = parsed.get("catalysts") or []
 
     risks = parsed.get("risk_points") or []
-    if isinstance(risks, list) and risks:
-        risk_lines = "\n".join([f"- {str(x)}" for x in risks[:3]])
-        details = f"{details}\n\n风险点:\n{risk_lines}".strip()
+    risk_points = [str(x).strip() for x in risks if str(x).strip()][:4]
+    catalysts_list = [str(x).strip() for x in catalysts if str(x).strip()][:3]
 
     if not summary:
         return _default_fallback(prediction.symbol, prediction, provider_used)
@@ -106,14 +155,7 @@ def generate_stock_narrative(
 
     ev = [str(x).strip().upper() for x in evidence_used if str(x).strip()]
     ev = [x for x in ev if x.startswith("N")]
-    if ev:
-        details = f"{details}\n\n证据引用: {', '.join(ev[:5])}"
-    else:
-        details = f"{details}\n\n证据引用: 无（新闻证据不足）"
-
     notes = [str(x).strip() for x in reliability_notes if str(x).strip()]
-    if notes:
-        details = f"{details}\n\n数据可靠性说明:\n" + "\n".join([f"- {x}" for x in notes[:3]])
 
     details = f"{details}\n\n结论倾向: {action_bias} | 置信度: {confidence}/100"
 
@@ -123,6 +165,16 @@ def generate_stock_narrative(
         details=details,
         used_provider=provider_used,
         news_items=news_items,
+        decision=decision,
+        trend=trend,
+        urgency=urgency,
+        confidence=confidence,
+        risk_points=risk_points,
+        catalysts=catalysts_list,
+        evidence_used=ev[:5],
+        reliability_notes=notes[:3],
+        latest_close=latest_close,
+        feature_snapshot=feature_snapshot,
     )
 
 
