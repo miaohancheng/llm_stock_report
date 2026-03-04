@@ -16,14 +16,16 @@ from app.data.history_store import get_or_update_symbol_history
 from app.data.normalize import normalize_symbol, parse_date
 from app.llm.base import LLMError
 from app.llm.factory import create_llm_client
-from app.llm.report_reasoner import generate_stock_narrative
+from app.llm.report_reasoner import generate_market_narrative, generate_stock_narrative
 from app.model.predictor import build_predictions
 from app.model.qlib_data_builder import build_market_feature_frame, frame_window, save_debug_frames, split_train_predict_frame
 from app.model.registry import ModelBundle, load_latest_model, model_is_expired, save_model_bundle
 from app.model.trainer import train_market_model
 from app.news.aggregator import search_news_with_fallback
+from app.report.market_overview import build_market_snapshot, market_news_query
 from app.report.renderer import (
     market_tag,
+    render_market_detail_markdown,
     render_summary_markdown,
     render_symbol_detail_markdown,
     write_outputs,
@@ -236,6 +238,45 @@ def main() -> int:
             detail_blocks.append((symbol, render_symbol_detail_markdown(market, asof_str, pred, narrative)))
 
         successful_predictions = [p for p in sorted_predictions if p.symbol in narratives]
+        market_summary_text: str | None = None
+
+        # Append one market-level overview after all symbol details.
+        market_snapshot = build_market_snapshot(
+            market=market,
+            market_data=market_data,
+            asof_date=asof_date,
+            market_index_fetch_enabled=cfg.market_index_fetch_enabled,
+        )
+        market_news_items, market_news_provider = search_news_with_fallback(
+            query=market_news_query(market),
+            tavily_api_key=cfg.tavily_api_key,
+            brave_api_key=cfg.brave_api_key,
+            max_results=6,
+        )
+        try:
+            market_narrative = generate_market_narrative(
+                llm_client=llm_client,
+                market=market,
+                asof_date=asof_str,
+                market_snapshot=market_snapshot,
+                news_items=market_news_items,
+                provider_used=market_news_provider,
+            )
+            market_summary_text = market_narrative.summary
+            detail_blocks.append(
+                (
+                    "MARKET",
+                    render_market_detail_markdown(
+                        market=market,
+                        asof_date=asof_str,
+                        market_snapshot=market_snapshot,
+                        narrative=market_narrative,
+                    ),
+                )
+            )
+        except LLMError as exc:
+            market_summary_text = f"{market.upper()} 大盘复盘生成失败: {exc}"
+            logger.warning("Skip market overview due to LLM failure: %s", exc)
 
         summary_md = render_summary_markdown(
             market=market,
@@ -243,6 +284,7 @@ def main() -> int:
             predictions=successful_predictions,
             narratives=narratives,
             failed_symbols=failed_symbols,
+            market_summary=market_summary_text,
         )
 
         details_md = "\n\n---\n\n".join([detail for _, detail in detail_blocks])

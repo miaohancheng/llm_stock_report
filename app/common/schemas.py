@@ -40,6 +40,15 @@ class StockNarrative:
 
 
 @dataclass
+class MarketNarrative:
+    market: str
+    summary: str
+    details: str
+    used_provider: str
+    news_items: list[NewsItem] = field(default_factory=list)
+
+
+@dataclass
 class RunMeta:
     run_id: str
     market: str

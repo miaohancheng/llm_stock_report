@@ -9,7 +9,7 @@ from unittest.mock import patch
 import pandas as pd
 
 from app.common.config import AppConfig
-from app.common.schemas import NewsItem, StockNarrative
+from app.common.schemas import MarketNarrative, NewsItem, StockNarrative
 from app.features.technical import FEATURE_COLUMNS
 from app.jobs import run_report
 from app.model.registry import ModelBundle
@@ -97,12 +97,23 @@ class RunReportIntegrationTest(unittest.TestCase):
                     news_items=[],
                 )
 
+            def fake_market_narrative(**kwargs):
+                market = kwargs["market"]
+                return MarketNarrative(
+                    market=market,
+                    summary=f"{market} market summary",
+                    details=f"{market} market details",
+                    used_provider="tavily",
+                    news_items=[],
+                )
+
             with patch("app.jobs.run_report.load_config", return_value=cfg), \
                 patch("app.jobs.run_report.load_universe", return_value={"cn": ["SZ000001", "SH600519", "SZ300750"], "us": []}), \
                 patch("app.jobs.run_report._fetch_single_symbol", side_effect=lambda market, symbol, start, asof: _make_ohlcv(symbol, asof)), \
                 patch("app.jobs.run_report._resolve_model_bundle", return_value=bundle), \
                 patch("app.jobs.run_report.search_news_with_fallback", return_value=([], "tavily")), \
-                patch("app.jobs.run_report.generate_stock_narrative", side_effect=fake_narrative):
+                patch("app.jobs.run_report.generate_stock_narrative", side_effect=fake_narrative), \
+                patch("app.jobs.run_report.generate_market_narrative", side_effect=fake_market_narrative):
                 with patch("sys.argv", ["run_report", "--market", "cn", "--date", "2026-03-03", "--no-telegram"]):
                     code = run_report.main()
 
@@ -112,6 +123,8 @@ class RunReportIntegrationTest(unittest.TestCase):
             self.assertTrue((output_dir / "details.md").exists())
             self.assertTrue((output_dir / "predictions.csv").exists())
             self.assertTrue((output_dir / "run_meta.json").exists())
+            details_text = (output_dir / "details.md").read_text(encoding="utf-8")
+            self.assertIn("大盘复盘", details_text)
 
     def test_us_report_telegram_sequence(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -139,6 +152,16 @@ class RunReportIntegrationTest(unittest.TestCase):
                     news_items=news,
                 )
 
+            def fake_market_narrative(**kwargs):
+                market = kwargs["market"]
+                return MarketNarrative(
+                    market=market,
+                    summary=f"{market} market summary",
+                    details=f"{market} market details",
+                    used_provider="brave",
+                    news_items=[],
+                )
+
             post_calls: list[str] = []
 
             class FakeResp:
@@ -158,6 +181,7 @@ class RunReportIntegrationTest(unittest.TestCase):
                 patch("app.jobs.run_report._resolve_model_bundle", return_value=bundle), \
                 patch("app.jobs.run_report.search_news_with_fallback", return_value=([], "brave")), \
                 patch("app.jobs.run_report.generate_stock_narrative", side_effect=fake_narrative), \
+                patch("app.jobs.run_report.generate_market_narrative", side_effect=fake_market_narrative), \
                 patch("app.report.telegram_sender.requests.post", side_effect=fake_post):
                 with patch("sys.argv", ["run_report", "--market", "us", "--date", "2026-03-03"]):
                     code = run_report.main()
@@ -168,6 +192,8 @@ class RunReportIntegrationTest(unittest.TestCase):
             self.assertIn("日报摘要", post_calls[0])
             # Later messages should contain symbol detail headers.
             self.assertTrue(any("AAPL" in c or "MSFT" in c or "NVDA" in c for c in post_calls[1:]))
+            # Market overview should be appended after symbol details.
+            self.assertTrue(any("MARKET" in c for c in post_calls[1:]))
 
 
 if __name__ == "__main__":

@@ -29,6 +29,7 @@ class AppConfig:
     outputs_root: Path
     models_root: Path
     qlib_data_root: Path
+    market_index_fetch_enabled: bool = False
     llm_provider: str = "openai"
     gemini_api_key: str | None = None
     gemini_model: str = "gemini-2.0-flash"
@@ -72,6 +73,18 @@ def _env_float(name: str, default: float) -> float:
     if value is None or value == "":
         return default
     return float(value)
+
+
+def _env_bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None or value == "":
+        return default
+    raw = str(value).strip().lower()
+    if raw in {"1", "true", "yes", "y", "on"}:
+        return True
+    if raw in {"0", "false", "no", "n", "off"}:
+        return False
+    return default
 
 
 def _parse_symbol_list(value: Any) -> list[str]:
@@ -142,6 +155,10 @@ def load_config(project_root: Path | None = None) -> AppConfig:
         "LLM_RETRY_JITTER_SECONDS",
         float(report_cfg.get("llm_retry_jitter_seconds", 1.0)),
     )
+    market_index_fetch_enabled = _env_bool(
+        "MARKET_INDEX_FETCH_ENABLED",
+        bool(report_cfg.get("market_index_fetch_enabled", True)),
+    )
     llm_provider = os.getenv("LLM_PROVIDER", str(report_cfg.get("llm_provider", "openai"))).strip().lower()
     gemini_model = os.getenv("GEMINI_MODEL", str(report_cfg.get("gemini_model", "gemini-2.0-flash")))
     gemini_base_url = os.getenv(
@@ -182,6 +199,7 @@ def load_config(project_root: Path | None = None) -> AppConfig:
         outputs_root=outputs_root,
         models_root=models_root,
         qlib_data_root=qlib_data_root,
+        market_index_fetch_enabled=market_index_fetch_enabled,
         llm_provider=llm_provider,
         gemini_api_key=os.getenv("GEMINI_API_KEY"),
         gemini_model=gemini_model,

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from app.common.schemas import PredictionRecord, RunMeta, StockNarrative
+from app.common.schemas import MarketNarrative, PredictionRecord, RunMeta, StockNarrative
 
 
 def market_tag(market: str) -> str:
@@ -19,6 +19,7 @@ def render_summary_markdown(
     predictions: list[PredictionRecord],
     narratives: dict[str, StockNarrative],
     failed_symbols: list[str],
+    market_summary: str | None = None,
 ) -> str:
     tag = market_tag(market)
     top = [p for p in predictions if p.side == "top"]
@@ -47,6 +48,9 @@ def render_summary_markdown(
         lines.extend(["", "## 失败清单"])
         for s in failed_symbols:
             lines.append(f"- {s}")
+
+    if market_summary:
+        lines.extend(["", "## 大盘复盘", f"- {market_summary}"])
 
     lines.append("")
     lines.append("*仅供研究参考，不构成投资建议。*")
@@ -80,6 +84,62 @@ def render_symbol_detail_markdown(
         lines.extend(["", "## 新闻证据"])
         for item in narrative.news_items:
             lines.append(f"- [{item.title}]({item.url})")
+
+    lines.append("")
+    lines.append("*仅供研究参考，不构成投资建议。*")
+    return "\n".join(lines)
+
+
+def render_market_detail_markdown(
+    market: str,
+    asof_date: str,
+    market_snapshot: dict,
+    narrative: MarketNarrative,
+) -> str:
+    tag = market_tag(market)
+    lines = [
+        f"# [{tag}] {asof_date} 大盘复盘",
+        "",
+        f"- news_provider: {narrative.used_provider}",
+        f"- sample_size: {int(market_snapshot.get('sample_size', 0))}",
+        f"- breadth: up={int(market_snapshot.get('up_count', 0))}, down={int(market_snapshot.get('down_count', 0))}, flat={int(market_snapshot.get('flat_count', 0))}",
+        f"- avg_ret_1d: {float(market_snapshot.get('avg_ret_1d', 0.0)):.4f}",
+        f"- median_ret_1d: {float(market_snapshot.get('median_ret_1d', 0.0)):.4f}",
+        "",
+        "## 摘要",
+        narrative.summary,
+        "",
+        "## 详细推理",
+        narrative.details,
+    ]
+
+    benchmarks = market_snapshot.get("benchmarks", []) or []
+    if benchmarks:
+        lines.extend(["", "## 基准指数"])
+        for item in benchmarks:
+            lines.append(
+                "- "
+                + f"{item.get('name')}({item.get('ticker')}): "
+                + f"close={float(item.get('latest_close', 0.0)):.2f}, "
+                + f"1d={float(item.get('ret_1d', 0.0)):.4f}, "
+                + f"5d={float(item.get('ret_5d', 0.0)):.4f}"
+            )
+
+    if narrative.news_items:
+        lines.extend(["", "## 新闻证据"])
+        for item in narrative.news_items:
+            lines.append(f"- [{item.title}]({item.url})")
+
+    gainers = market_snapshot.get("gainers", []) or []
+    losers = market_snapshot.get("losers", []) or []
+    if gainers:
+        lines.extend(["", "## 样本领涨"])
+        for x in gainers:
+            lines.append(f"- {x.get('symbol')}: {float(x.get('ret_1d', 0.0)):.4f}")
+    if losers:
+        lines.extend(["", "## 样本领跌"])
+        for x in losers:
+            lines.append(f"- {x.get('symbol')}: {float(x.get('ret_1d', 0.0)):.4f}")
 
     lines.append("")
     lines.append("*仅供研究参考，不构成投资建议。*")

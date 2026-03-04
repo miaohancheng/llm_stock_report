@@ -98,6 +98,7 @@ Optional:
 - `MAX_STOCKS_PER_RUN`
 - `DETAIL_MESSAGE_CHAR_LIMIT`
 - `MODEL_EXPIRE_DAYS`
+- `MARKET_INDEX_FETCH_ENABLED` (default `true`)
 - `STOCK_LIST_CN` / `STOCK_LIST_US` / `STOCK_LIST_HK`
 - `LLM_MAX_RETRIES`
 - `LLM_RETRY_BASE_DELAY_SECONDS`
@@ -185,6 +186,7 @@ python -m app.jobs.run_report --market cn --date 2026-03-04 --no-telegram
 Send order:
 1. Summary message (`[CN] YYYY-MM-DD 日报摘要`)
 2. Per-symbol detail chunks (`[CN][symbol][i/n]`)
+3. Market overview message (`[CN][MARKET][1/1]`)
 
 Behavior:
 - Max message length default: 3500 chars
@@ -236,6 +238,7 @@ Optional:
 - `LLM_RETRY_BASE_DELAY_SECONDS` (default `5`)
 - `LLM_RETRY_MAX_DELAY_SECONDS` (default `120`)
 - `LLM_RETRY_JITTER_SECONDS` (default `1`)
+- `MARKET_INDEX_FETCH_ENABLED` (default `true`)
 
 ## 9.5 Artifacts
 Each workflow uploads:
@@ -261,6 +264,7 @@ Retention: 14 days.
 - `GEMINI_MODEL`: Gemini model name (default `gemini-2.0-flash`)
 - `OLLAMA_MODEL`: Ollama model name (default `qwen2.5:7b`)
 - `OLLAMA_BASE_URL`: Ollama base URL (default `http://127.0.0.1:11434`)
+- `MARKET_INDEX_FETCH_ENABLED`: enable benchmark index fetch (default `true`)
 
 ## 9.7 LLM Reliability Hardening
 

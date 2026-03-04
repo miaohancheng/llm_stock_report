@@ -20,7 +20,7 @@ LLM daily stock summary + next-day prediction for CN/US/HK markets, with schedul
 - Tavily 主搜索、Brave 兜底新闻搜索
 - 支持 OpenAI / Gemini / Ollama 生成中文摘要与详细推理
 - 提示词强化：证据引用、置信度、可靠性说明、风险约束
-- Telegram 推送顺序：摘要 1 条 -> 按股票详细分段
+- Telegram 推送顺序：摘要 1 条 -> 按股票详细分段 -> 大盘复盘
 - 输出目录：`outputs/{market}/{date}/`
 
 ### 快速开始
@@ -67,6 +67,7 @@ LLM 至少配置一组：
 - `LLM_MAX_RETRIES`（LLM 最大重试次数，默认 6）
 - `LLM_RETRY_BASE_DELAY_SECONDS`（LLM 重试基础间隔，默认 5 秒）
 - `LLM_RETRY_MAX_DELAY_SECONDS`（LLM 重试最大间隔，默认 120 秒）
+- `MARKET_INDEX_FETCH_ENABLED`（是否抓取指数基准，默认 true）
 - `GEMINI_MODEL`（默认 `gemini-2.0-flash`）
 - `OLLAMA_MODEL`（默认 `qwen2.5:7b`）
 - `OLLAMA_BASE_URL`（默认 `http://127.0.0.1:11434`）
@@ -84,6 +85,7 @@ LLM 至少配置一组：
 - `details.md`
 - `predictions.csv`
 - `run_meta.json`
+- `details.md` 末尾附加当日大盘复盘（CN/US/HK）
 
 ### 文档
 - 中文完整指南: [docs/full-guide.md](docs/full-guide.md)
@@ -103,7 +105,7 @@ LLM 至少配置一组：
 - News search with Tavily primary and Brave fallback
 - Chinese report generation with OpenAI / Gemini / Ollama
 - Prompt hardening for reliability: evidence refs, confidence score, reliability notes
-- Telegram send order: one summary message, then per-symbol chunked details
+- Telegram send order: one summary message, per-symbol chunked details, then market overview
 - Output path: `outputs/{market}/{date}/`
 
 ### Quick Start
@@ -150,6 +152,7 @@ Configure at least one LLM path:
 - `LLM_MAX_RETRIES` (default `6`)
 - `LLM_RETRY_BASE_DELAY_SECONDS` (default `5`)
 - `LLM_RETRY_MAX_DELAY_SECONDS` (default `120`)
+- `MARKET_INDEX_FETCH_ENABLED` (enable benchmark index fetch, default `true`)
 - `GEMINI_MODEL` (default `gemini-2.0-flash`)
 - `OLLAMA_MODEL` (default `qwen2.5:7b`)
 - `OLLAMA_BASE_URL` (default `http://127.0.0.1:11434`)
@@ -167,6 +170,7 @@ Configure at least one LLM path:
 - `details.md`
 - `predictions.csv`
 - `run_meta.json`
+- market overview is appended at the end of `details.md`
 
 ### Documentation
 - Chinese full guide: [docs/full-guide.md](docs/full-guide.md)

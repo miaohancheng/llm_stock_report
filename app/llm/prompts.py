@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from app.common.schemas import NewsItem, PredictionRecord
 
 
@@ -70,6 +72,101 @@ def build_stock_reasoning_prompt(
   "action_bias": "偏多|中性|偏空",
   "confidence": 66,
   "evidence_used": ["N1", "N2"],
+  "reliability_notes": ["说明1", "说明2"]
+}}
+""".strip()
+
+
+def build_market_reasoning_prompt(
+    market: str,
+    asof_date: str,
+    market_snapshot: dict,
+    news_items: list[NewsItem],
+) -> str:
+    benchmark_lines: list[str] = []
+    for item in market_snapshot.get("benchmarks", []):
+        benchmark_lines.append(
+            (
+                f"- {item.get('name')}({item.get('ticker')}): "
+                f"close={float(item.get('latest_close', 0.0)):.2f}, "
+                f"1d={float(item.get('ret_1d', 0.0)):.4f}, "
+                f"5d={float(item.get('ret_5d', 0.0)):.4f}, "
+                f"ma20_ratio={float(item.get('ma20_ratio', 0.0)):.4f}"
+            )
+        )
+    benchmark_block = "\n".join(benchmark_lines) if benchmark_lines else "- 无可用基准指数数据"
+
+    gainers = market_snapshot.get("gainers", []) or []
+    losers = market_snapshot.get("losers", []) or []
+    breadth_block = (
+        f"样本数={int(market_snapshot.get('sample_size', 0))}, "
+        f"上涨={int(market_snapshot.get('up_count', 0))}, "
+        f"下跌={int(market_snapshot.get('down_count', 0))}, "
+        f"平盘={int(market_snapshot.get('flat_count', 0))}, "
+        f"均值涨跌={float(market_snapshot.get('avg_ret_1d', 0.0)):.4f}, "
+        f"中位涨跌={float(market_snapshot.get('median_ret_1d', 0.0)):.4f}"
+    )
+    gainers_block = "\n".join(
+        [f"- {x.get('symbol')}: {float(x.get('ret_1d', 0.0)):.4f}" for x in gainers]
+    ) or "- 无"
+    losers_block = "\n".join(
+        [f"- {x.get('symbol')}: {float(x.get('ret_1d', 0.0)):.4f}" for x in losers]
+    ) or "- 无"
+
+    news_lines = []
+    for idx, item in enumerate(news_items, start=1):
+        news_lines.append(
+            f"[N{idx}] 标题: {item.title}\n"
+            f"      摘要: {item.snippet[:180]}\n"
+            f"      链接: {item.url}"
+        )
+    news_block = "\n".join(news_lines) if news_lines else "无相关新闻"
+
+    snapshot_json = json.dumps(market_snapshot, ensure_ascii=False)
+
+    return f"""
+请基于以下输入生成{market.upper()}市场的大盘复盘，要求“客观、可追溯、不过度结论”。
+
+日期: {asof_date}
+市场: {market}
+
+基准指数:
+{benchmark_block}
+
+样本宽度:
+{breadth_block}
+
+样本领涨:
+{gainers_block}
+
+样本领跌:
+{losers_block}
+
+新闻证据:
+{news_block}
+
+结构化快照(JSON):
+{snapshot_json}
+
+输出要求（必须同时满足）：
+1) summary 不超过 70 字，给出市场风险偏好判断与不确定性
+2) details 必须包含：
+   - 指数/宽度两方面结论
+   - 新闻面影响与证据边界
+   - 次日观察点（2-3条）
+3) risk_points 必须给出 2-4 条具体风险
+4) confidence 为 0-100 的整数
+5) evidence_used 仅允许填 N1/N2...；无新闻则空数组
+6) reliability_notes 给出数据可靠性说明
+
+仅输出 JSON，格式如下：
+{{
+  "summary": "一句话摘要，不超过70字",
+  "details": "2-4段大盘复盘",
+  "risk_points": ["风险1", "风险2"],
+  "action_bias": "偏多|中性|偏空",
+  "confidence": 62,
+  "evidence_used": ["N1"],
   "reliability_notes": ["说明1", "说明2"]
 }}
 """.strip()

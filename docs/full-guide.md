@@ -184,6 +184,7 @@ python -m app.jobs.run_report --market cn --date 2026-03-04 --no-telegram
 推送顺序固定：
 1. 摘要消息（标题如 `[CN] 2026-03-04 日报摘要`）
 2. 逐股票详细消息（标题如 `[CN][SH600519][1/2]`）
+3. 大盘复盘消息（标题如 `[CN][MARKET][1/1]`）
 
 细节：
 - 单条消息默认最多 3500 字符
@@ -223,6 +224,7 @@ python -m app.jobs.run_report --market cn --date 2026-03-04 --no-telegram
 - `MAX_STOCKS_PER_RUN`（默认 30）
 - `DETAIL_MESSAGE_CHAR_LIMIT`（默认 3500）
 - `MODEL_EXPIRE_DAYS`（默认 8）
+- `MARKET_INDEX_FETCH_ENABLED`（默认 true，是否拉取指数基准）
 - `STOCK_LIST_CN` / `STOCK_LIST_US` / `STOCK_LIST_HK`（环境变量覆盖股票池）
 - `OPENAI_BASE_URL`
 - `OPENAI_MODEL`
@@ -235,6 +237,7 @@ python -m app.jobs.run_report --market cn --date 2026-03-04 --no-telegram
 - `LLM_RETRY_BASE_DELAY_SECONDS`（默认 5）
 - `LLM_RETRY_MAX_DELAY_SECONDS`（默认 120）
 - `LLM_RETRY_JITTER_SECONDS`（默认 1）
+- `MARKET_INDEX_FETCH_ENABLED`（默认 true）
 
 ## 9.5 Artifact
 每次运行上传：
@@ -260,6 +263,7 @@ python -m app.jobs.run_report --market cn --date 2026-03-04 --no-telegram
 - `GEMINI_MODEL`：Gemini 模型名（默认 `gemini-2.0-flash`）
 - `OLLAMA_MODEL`：Ollama 模型名（默认 `qwen2.5:7b`）
 - `OLLAMA_BASE_URL`：Ollama 地址（默认 `http://127.0.0.1:11434`）
+- `MARKET_INDEX_FETCH_ENABLED`：是否抓取大盘指数（默认 true）
 
 ## 9.7 LLM 输出可靠性增强
 
