@@ -10,6 +10,7 @@ This document explains how to configure Actions, Secrets (keys), and Variables f
   - `.github/workflows/daily_hk.yml`
   - `.github/workflows/daily_us.yml`
   - `.github/workflows/weekly_retrain.yml`
+  - `.github/workflows/deploy_pages.yml`
 
 ## 2. Enable Actions
 
@@ -103,6 +104,21 @@ Current schedules (UTC):
 Notes:
 - These are automatic triggers; no manual run is required.
 - CN and HK runs are staggered by 1.5 hours to reduce contention.
+
+## 5.2 GitHub Pages deployment and auto case updates
+
+The repository now includes two connected pieces:
+1. `daily_cn/hk/us.yml` runs `python -m app.jobs.export_case` after each report, then commits `pages_data/cases/**` back to the repo.
+2. `deploy_pages.yml` auto-builds and publishes the Pages site when `docs/**` or `pages_data/**` changes.
+
+First-time enablement:
+1. Go to `Settings` -> `Pages`.
+2. Under `Build and deployment`, set `Source` to `GitHub Actions`.
+3. Trigger `Deploy GitHub Pages` manually once (or wait for the next daily run push).
+
+Published site contains:
+- detailed usage docs (ZH/EN)
+- daily case updates (newest first)
 
 ## 6. First manual run (recommended)
 

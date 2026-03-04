@@ -199,6 +199,7 @@ python -m app.jobs.run_report --market cn --date 2026-03-04 --no-telegram
 - `.github/workflows/daily_hk.yml`
 - `.github/workflows/daily_us.yml`
 - `.github/workflows/weekly_retrain.yml`
+- `.github/workflows/deploy_pages.yml`
 
 ## 9.2 定时规则（UTC）
 - `daily_cn.yml`: `0 8 * * 1-5`（北京时间工作日 16:00）
@@ -207,6 +208,12 @@ python -m app.jobs.run_report --market cn --date 2026-03-04 --no-telegram
 - 以上为自动定时运行：CN/HK 为北京时间工作日；US 为北京时间周二到周六早晨（覆盖美股前一交易日）
 - `weekly_retrain.yml`: 周日定时
 - 使用 GitHub Hosted Runner 时，默认无法连到你本机 Ollama；Ollama 建议本地跑或用 self-hosted runner
+- `deploy_pages.yml`: 在 `docs/**` 或 `pages_data/**` 变更后自动发布 GitHub Pages（文档 + 每日案例）
+
+## 9.2.1 GitHub Pages 说明
+- 每次日报完成后会自动执行 `python -m app.jobs.export_case`，把当日结果写入 `pages_data/cases/**`。
+- `deploy_pages.yml` 会把文档与案例渲染为静态站点并发布到 Pages。
+- 首次使用请在仓库 `Settings -> Pages` 将 `Source` 设置为 `GitHub Actions`。
 
 ## 9.3 GitHub Secrets
 必需：

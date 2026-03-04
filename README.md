@@ -104,9 +104,20 @@ LLM 至少配置一组：
 - `daily_cn.yml`：UTC `0 8 * * 1-5`（北京时间工作日 16:00）
 - `daily_hk.yml`：UTC `30 9 * * 1-5`（北京时间工作日 17:30）
 - `daily_us.yml`：UTC `30 23 * * 1-5`（北京时间次日 07:30）
+- `deploy_pages.yml`：自动发布 GitHub Pages（详细文档 + 每日案例）
 - 以上定时均为自动运行；CN/HK 在北京时间工作日触发，US 在北京时间周二到周六早晨触发（覆盖美股前一交易日）
 - GitHub Hosted Runner 默认无法访问你本机 Ollama；Ollama 仅建议本地运行或 self-hosted runner 使用
 - `weekly_retrain.yml`：每周重训 CN/US/HK
+
+### GitHub Pages
+- Pages 内容分两块：
+  - 详细使用文档（中英文）
+  - 每日案例更新（由日报工作流自动写入 `pages_data/`）
+- 首次启用：
+  - 仓库 `Settings` -> `Pages`
+  - `Build and deployment` 的 `Source` 选 `GitHub Actions`
+  - 手动触发一次 `Deploy GitHub Pages` workflow 或等待下次自动触发
+- 发布后地址通常为：`https://<owner>.github.io/<repo>/`
 
 ### 输出文件
 - `summary.md`
@@ -193,9 +204,20 @@ Configure at least one LLM path:
 - `daily_cn.yml`: UTC `0 8 * * 1-5` (16:00 Asia/Shanghai on weekdays)
 - `daily_hk.yml`: UTC `30 9 * * 1-5` (17:30 Asia/Shanghai on weekdays)
 - `daily_us.yml`: UTC `30 23 * * 1-5` (07:30 Asia/Shanghai next day)
+- `deploy_pages.yml`: auto-publish GitHub Pages (detailed docs + daily cases)
 - All schedules run automatically every trading day window: CN/HK on Asia/Shanghai weekdays, US on Asia/Shanghai Tue-Sat morning.
 - GitHub-hosted runners cannot access your local Ollama by default; use Ollama locally or on self-hosted runners.
 - `weekly_retrain.yml`: weekly retraining for CN/US/HK models
+
+### GitHub Pages
+- Pages includes two sections:
+  - detailed usage docs (ZH/EN)
+  - daily case updates (auto-written by daily workflows into `pages_data/`)
+- First-time enablement:
+  - Go to `Settings` -> `Pages`
+  - Set `Build and deployment` -> `Source` to `GitHub Actions`
+  - Trigger `Deploy GitHub Pages` once manually, or wait for auto trigger
+- Published URL is typically: `https://<owner>.github.io/<repo>/`
 
 ### Outputs
 - `summary.md`

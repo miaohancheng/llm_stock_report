@@ -201,6 +201,7 @@ Behavior:
 - `.github/workflows/daily_hk.yml`
 - `.github/workflows/daily_us.yml`
 - `.github/workflows/weekly_retrain.yml`
+- `.github/workflows/deploy_pages.yml`
 
 ## 9.2 Schedules (UTC)
 - `daily_cn.yml`: `0 8 * * 1-5` (16:00 Asia/Shanghai weekdays)
@@ -209,6 +210,12 @@ Behavior:
 - These are automatic runs for each trading-day window: CN/HK on Asia/Shanghai weekdays, US on Asia/Shanghai Tue-Sat morning.
 - `weekly_retrain.yml`: scheduled Sunday retraining
 - On GitHub-hosted runners, local Ollama is not reachable by default; use Ollama locally or on self-hosted runners.
+- `deploy_pages.yml`: auto-publishes GitHub Pages when `docs/**` or `pages_data/**` changes (docs + daily cases)
+
+## 9.2.1 GitHub Pages notes
+- After each daily report, `python -m app.jobs.export_case` writes a case snapshot into `pages_data/cases/**`.
+- `deploy_pages.yml` renders docs + cases into a static site and deploys it to Pages.
+- For first-time setup, go to `Settings -> Pages` and set `Source` to `GitHub Actions`.
 
 ## 9.3 GitHub Secrets
 Required:

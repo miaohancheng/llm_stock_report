@@ -10,6 +10,7 @@
   - `.github/workflows/daily_hk.yml`
   - `.github/workflows/daily_us.yml`
   - `.github/workflows/weekly_retrain.yml`
+  - `.github/workflows/deploy_pages.yml`
 
 ## 2. 启用 Actions
 
@@ -103,6 +104,21 @@ STOCK_LIST_HK=HK00700,HK03690,HK09988
 说明：
 - 以上为自动触发，不需要手动运行。
 - A 股与港股相隔 1.5 小时，避免同一时刻并发拥塞。
+
+## 5.2 GitHub Pages 部署与案例自动更新
+
+项目已内置两段能力：
+1. `daily_cn/hk/us.yml` 会在日报结束后执行 `python -m app.jobs.export_case`，把结果写入 `pages_data/cases/**` 并自动提交回仓库。
+2. `deploy_pages.yml` 在 `docs/**` 或 `pages_data/**` 变更时自动构建并发布站点。
+
+首次启用步骤：
+1. 打开 `Settings` -> `Pages`。
+2. 在 `Build and deployment` 中把 `Source` 设为 `GitHub Actions`。
+3. 回到 `Actions` 手动触发一次 `Deploy GitHub Pages`（或等待下一次日报后自动触发）。
+
+发布后站点包含两块内容：
+- 详细使用文档（中英文）
+- 每日案例更新（按日期倒序展示）
 
 ## 6. 首次手动触发（推荐）
 
