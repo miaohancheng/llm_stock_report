@@ -22,6 +22,7 @@ def build_stock_reasoning_prompt(
 ) -> str:
     ordered_features = sorted(feature_snapshot.items(), key=lambda x: x[0])
     feature_lines = [f"- {k}: {v:.6f}" for k, v in ordered_features]
+    feature_block = "\n".join(feature_lines) if feature_lines else "- 无可用技术特征"
 
     news_lines = []
     for idx, item in enumerate(news_items, start=1):
@@ -42,10 +43,10 @@ def build_stock_reasoning_prompt(
 预测分数(score): {prediction.score:.6f}
 预测收益(pred_return): {prediction.pred_return:.6f}
 排名: {prediction.rank}
-多空标签(side): {prediction.side}
+	多空标签(side): {prediction.side}
 
-技术面快照:
-{"\n".join(feature_lines)}
+	技术面快照:
+	{feature_block}
 
 新闻证据:
 {news_block}

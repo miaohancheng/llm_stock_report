@@ -71,4 +71,11 @@ def to_akshare_symbol(symbol: str) -> str:
 
 def to_yfinance_hk_ticker(symbol: str) -> str:
     normalized = normalize_hk_symbol(symbol)
-    return f"{normalized[2:]}.HK"
+    raw = normalized[2:]
+    try:
+        numeric = int(raw)
+    except ValueError:
+        return f"{raw}.HK"
+    if numeric <= 9999:
+        return f"{numeric:04d}.HK"
+    return f"{numeric}.HK"

@@ -17,7 +17,8 @@ class UniverseAndHKTest(unittest.TestCase):
         self.assertEqual("HK00700", normalize_hk_symbol("0700"))
         self.assertEqual("HK00700", normalize_hk_symbol("00700"))
         self.assertEqual("HK00700", normalize_symbol("HK00700", "hk"))
-        self.assertEqual("00700.HK", to_yfinance_hk_ticker("HK00700"))
+        self.assertEqual("0700.HK", to_yfinance_hk_ticker("HK00700"))
+        self.assertEqual("3288.HK", to_yfinance_hk_ticker("HK03288"))
 
     def test_universe_env_overrides(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

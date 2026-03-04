@@ -101,6 +101,8 @@ def _retry_fetch(
             return fetcher(symbol, start, end)
         except Exception as exc:
             last_error = exc
+            if _is_non_retryable_error(exc):
+                raise DataFetchError(f"Fetch non-retryable for {symbol}: {exc}") from exc
             if attempt >= retries:
                 break
             base = cfg.fetch_retry_base_delay_seconds * (2 ** (attempt - 1))
@@ -119,6 +121,19 @@ def _retry_fetch(
             time.sleep(delay)
 
     raise DataFetchError(f"Fetch failed after {retries} retries for {symbol}: {last_error}")
+
+
+def _is_non_retryable_error(exc: Exception) -> bool:
+    message = str(exc).lower()
+    non_retryable_markers = [
+        "non_retryable",
+        "quote not found",
+        "possibly delisted",
+        "no timezone found",
+        "not found for symbol",
+        "invalid hk symbol",
+    ]
+    return any(marker in message for marker in non_retryable_markers)
 
 
 def history_window_start(cfg: AppConfig, asof_date: date) -> date:

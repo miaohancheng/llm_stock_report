@@ -133,6 +133,29 @@ class HistoryStoreTest(unittest.TestCase):
             cached = load_cached_history(cfg, "us", symbol)
             self.assertGreaterEqual(min(cached["date"]), asof - timedelta(days=17))
 
+    def test_non_retryable_error_stops_immediately(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cfg = _make_cfg(Path(tmp))
+            asof = date(2026, 3, 4)
+            calls = {"n": 0}
+
+            def non_retryable_fetch(symbol: str, start: date, end: date) -> pd.DataFrame:
+                calls["n"] += 1
+                raise RuntimeError("Quote not found for symbol: 03288.HK")
+
+            with patch("app.data.history_store.time.sleep", return_value=None) as mocked_sleep:
+                with self.assertRaises(Exception):
+                    get_or_update_symbol_history(
+                        cfg=cfg,
+                        market="hk",
+                        symbol="HK03288",
+                        asof_date=asof,
+                        fetcher=non_retryable_fetch,
+                    )
+
+            self.assertEqual(1, calls["n"])
+            mocked_sleep.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()
