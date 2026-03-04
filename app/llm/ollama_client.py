@@ -8,22 +8,22 @@ from app.llm.base import LLMError, RetryConfig, parse_json_text, post_json_with_
 logger = logging.getLogger(__name__)
 
 
-class OpenAIClient:
-    provider = "openai"
+class OllamaClient:
+    provider = "ollama"
 
     def __init__(
         self,
-        api_key: str,
         base_url: str,
         model: str,
+        api_key: str | None = None,
         max_retries: int = 6,
         retry_base_delay_seconds: float = 5.0,
         retry_max_delay_seconds: float = 120.0,
         retry_jitter_seconds: float = 1.0,
     ):
-        self.api_key = (api_key or "").strip()
         self.base_url = base_url.rstrip("/")
         self.model = model
+        self.api_key = (api_key or "").strip()
         self.retry = RetryConfig(
             max_retries=max_retries,
             retry_base_delay_seconds=retry_base_delay_seconds,
@@ -35,41 +35,42 @@ class OpenAIClient:
         return f"{self.provider}:{self.model}"
 
     def chat_json(self, system_prompt: str, user_prompt: str) -> dict[str, Any]:
-        if not self.api_key:
-            raise LLMError("OPENAI_API_KEY is not set")
-
-        url = f"{self.base_url}/chat/completions"
+        url = f"{self.base_url}/api/chat"
         payload = {
             "model": self.model,
-            "response_format": {"type": "json_object"},
+            "stream": False,
+            "format": "json",
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            "temperature": 0.3,
+            "options": {"temperature": 0.3},
         }
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-        }
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
 
         response = post_json_with_retry(
             url=url,
             headers=headers,
             payload=payload,
-            timeout_seconds=45,
+            timeout_seconds=90,
             retry=self.retry,
-            provider_name="OpenAI",
+            provider_name="Ollama",
         )
         try:
             data = response.json()
-            content = data["choices"][0]["message"]["content"]
         except Exception as exc:
-            logger.error("Invalid OpenAI response: %s", response.text[:500])
-            raise LLMError(f"OpenAI response parsing failed: {exc}") from exc
+            logger.error("Invalid Ollama response: %s", response.text[:500])
+            raise LLMError(f"Ollama response parsing failed: {exc}") from exc
 
-        try:
-            return parse_json_text(content, provider_name="OpenAI")
-        except LLMError:
-            logger.error("Invalid OpenAI response content: %s", str(content)[:500])
-            raise
+        raw_content = ""
+        message = data.get("message")
+        if isinstance(message, dict) and message.get("content"):
+            raw_content = str(message.get("content"))
+        elif data.get("response"):
+            raw_content = str(data.get("response"))
+
+        if not raw_content:
+            raise LLMError(f"Ollama returned empty content: {str(data)[:200]}")
+        return parse_json_text(raw_content, provider_name="Ollama")

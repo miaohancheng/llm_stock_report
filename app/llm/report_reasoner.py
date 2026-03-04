@@ -4,7 +4,7 @@ import logging
 from typing import Any
 
 from app.common.schemas import NewsItem, PredictionRecord, StockNarrative
-from app.llm.openai_client import LLMError, OpenAIClient
+from app.llm.base import LLMClient, LLMError
 from app.llm.prompts import SYSTEM_PROMPT, build_stock_reasoning_prompt
 
 logger = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ def _default_fallback(symbol: str, prediction: PredictionRecord, provider: str) 
 
 
 def generate_stock_narrative(
-    llm_client: OpenAIClient,
+    llm_client: LLMClient,
     market: str,
     prediction: PredictionRecord,
     latest_close: float,

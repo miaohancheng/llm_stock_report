@@ -29,6 +29,13 @@ class AppConfig:
     outputs_root: Path
     models_root: Path
     qlib_data_root: Path
+    llm_provider: str = "openai"
+    gemini_api_key: str | None = None
+    gemini_model: str = "gemini-2.0-flash"
+    gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta"
+    ollama_api_key: str | None = None
+    ollama_model: str = "qwen2.5:7b"
+    ollama_base_url: str = "http://127.0.0.1:11434"
     training_window_days: int = 365 * 2
     feature_warmup_days: int = 60
     history_prune_buffer_days: int = 60
@@ -37,6 +44,10 @@ class AppConfig:
     fetch_retry_base_delay_seconds: float = 15.0
     fetch_retry_max_delay_seconds: float = 300.0
     fetch_retry_jitter_seconds: float = 2.0
+    llm_max_retries: int = 6
+    llm_retry_base_delay_seconds: float = 5.0
+    llm_retry_max_delay_seconds: float = 120.0
+    llm_retry_jitter_seconds: float = 1.0
 
 
 def _read_yaml(path: Path) -> dict[str, Any]:
@@ -115,6 +126,33 @@ def load_config(project_root: Path | None = None) -> AppConfig:
         "FETCH_RETRY_JITTER_SECONDS",
         float(report_cfg.get("fetch_retry_jitter_seconds", 2.0)),
     )
+    llm_max_retries = _env_int(
+        "LLM_MAX_RETRIES",
+        int(report_cfg.get("llm_max_retries", 6)),
+    )
+    llm_retry_base_delay_seconds = _env_float(
+        "LLM_RETRY_BASE_DELAY_SECONDS",
+        float(report_cfg.get("llm_retry_base_delay_seconds", 5.0)),
+    )
+    llm_retry_max_delay_seconds = _env_float(
+        "LLM_RETRY_MAX_DELAY_SECONDS",
+        float(report_cfg.get("llm_retry_max_delay_seconds", 120.0)),
+    )
+    llm_retry_jitter_seconds = _env_float(
+        "LLM_RETRY_JITTER_SECONDS",
+        float(report_cfg.get("llm_retry_jitter_seconds", 1.0)),
+    )
+    llm_provider = os.getenv("LLM_PROVIDER", str(report_cfg.get("llm_provider", "openai"))).strip().lower()
+    gemini_model = os.getenv("GEMINI_MODEL", str(report_cfg.get("gemini_model", "gemini-2.0-flash")))
+    gemini_base_url = os.getenv(
+        "GEMINI_BASE_URL",
+        str(report_cfg.get("gemini_base_url", "https://generativelanguage.googleapis.com/v1beta")),
+    )
+    ollama_model = os.getenv("OLLAMA_MODEL", str(report_cfg.get("ollama_model", "qwen2.5:7b")))
+    ollama_base_url = os.getenv(
+        "OLLAMA_BASE_URL",
+        str(report_cfg.get("ollama_base_url", "http://127.0.0.1:11434")),
+    )
 
     outputs_root = root / os.getenv("OUTPUTS_ROOT", "outputs")
     models_root = root / os.getenv("MODELS_ROOT", "models")
@@ -144,6 +182,13 @@ def load_config(project_root: Path | None = None) -> AppConfig:
         outputs_root=outputs_root,
         models_root=models_root,
         qlib_data_root=qlib_data_root,
+        llm_provider=llm_provider,
+        gemini_api_key=os.getenv("GEMINI_API_KEY"),
+        gemini_model=gemini_model,
+        gemini_base_url=gemini_base_url,
+        ollama_api_key=os.getenv("OLLAMA_API_KEY"),
+        ollama_model=ollama_model,
+        ollama_base_url=ollama_base_url,
         training_window_days=training_window_days,
         feature_warmup_days=feature_warmup_days,
         history_prune_buffer_days=history_prune_buffer_days,
@@ -152,6 +197,10 @@ def load_config(project_root: Path | None = None) -> AppConfig:
         fetch_retry_base_delay_seconds=fetch_retry_base_delay_seconds,
         fetch_retry_max_delay_seconds=fetch_retry_max_delay_seconds,
         fetch_retry_jitter_seconds=fetch_retry_jitter_seconds,
+        llm_max_retries=llm_max_retries,
+        llm_retry_base_delay_seconds=llm_retry_base_delay_seconds,
+        llm_retry_max_delay_seconds=llm_retry_max_delay_seconds,
+        llm_retry_jitter_seconds=llm_retry_jitter_seconds,
     )
 
 

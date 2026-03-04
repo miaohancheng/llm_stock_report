@@ -22,6 +22,13 @@ jobs:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       OPENAI_BASE_URL: ${{ vars.OPENAI_BASE_URL }}
       OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GEMINI_MODEL: ${{ vars.GEMINI_MODEL || 'gemini-2.0-flash' }}
+      GEMINI_BASE_URL: ${{ vars.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta' }}
+      OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+      OLLAMA_BASE_URL: ${{ vars.OLLAMA_BASE_URL || 'http://127.0.0.1:11434' }}
+      OLLAMA_MODEL: ${{ vars.OLLAMA_MODEL || 'qwen2.5:7b' }}
+      LLM_PROVIDER: ${{ vars.LLM_PROVIDER || 'openai' }}
       STOCK_LIST_CN: ${{ vars.STOCK_LIST_CN }}
       STOCK_LIST_US: ${{ vars.STOCK_LIST_US }}
       STOCK_LIST_HK: ${{ vars.STOCK_LIST_HK }}
@@ -41,6 +48,10 @@ jobs:
       FETCH_RETRY_BASE_DELAY_SECONDS: ${{ vars.FETCH_RETRY_BASE_DELAY_SECONDS || '15' }}
       FETCH_RETRY_MAX_DELAY_SECONDS: ${{ vars.FETCH_RETRY_MAX_DELAY_SECONDS || '300' }}
       FETCH_RETRY_JITTER_SECONDS: ${{ vars.FETCH_RETRY_JITTER_SECONDS || '2' }}
+      LLM_MAX_RETRIES: ${{ vars.LLM_MAX_RETRIES || '6' }}
+      LLM_RETRY_BASE_DELAY_SECONDS: ${{ vars.LLM_RETRY_BASE_DELAY_SECONDS || '5' }}
+      LLM_RETRY_MAX_DELAY_SECONDS: ${{ vars.LLM_RETRY_MAX_DELAY_SECONDS || '120' }}
+      LLM_RETRY_JITTER_SECONDS: ${{ vars.LLM_RETRY_JITTER_SECONDS || '1' }}
 
     steps:
       - name: Checkout

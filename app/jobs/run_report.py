@@ -14,7 +14,8 @@ from app.data.fetch_hk import fetch_hk_ohlcv
 from app.data.fetch_us import fetch_us_ohlcv
 from app.data.history_store import get_or_update_symbol_history
 from app.data.normalize import normalize_symbol, parse_date
-from app.llm.openai_client import LLMError, OpenAIClient
+from app.llm.base import LLMError
+from app.llm.factory import create_llm_client
 from app.llm.report_reasoner import generate_stock_narrative
 from app.model.predictor import build_predictions
 from app.model.qlib_data_builder import build_market_feature_frame, frame_window, save_debug_frames, split_train_predict_frame
@@ -122,6 +123,15 @@ def main() -> int:
     args = build_arg_parser().parse_args()
 
     cfg = load_config()
+    llm_model_for_meta = (
+        f"gemini:{cfg.gemini_model}"
+        if cfg.llm_provider == "gemini"
+        else f"ollama:{cfg.ollama_model}"
+        if cfg.llm_provider == "ollama"
+        else f"openai:{cfg.llm_model}"
+        if cfg.llm_provider == "openai"
+        else f"{cfg.llm_provider}:{cfg.llm_model}"
+    )
     market = args.market
     asof_date = parse_date(args.date)
     asof_str = asof_date.isoformat()
@@ -171,11 +181,7 @@ def main() -> int:
         if not predictions:
             raise RuntimeError("Prediction result is empty")
 
-        llm_client = OpenAIClient(
-            api_key=cfg.openai_api_key or "",
-            base_url=cfg.openai_base_url,
-            model=cfg.llm_model,
-        )
+        llm_client, llm_model_label = create_llm_client(cfg)
 
         narratives: dict[str, StockNarrative] = {}
         detail_blocks: list[tuple[str, str]] = []
@@ -257,7 +263,7 @@ def main() -> int:
             failed_symbols=len(failed_symbols),
             failed_list=sorted(set(failed_symbols)),
             model_version=bundle.model_version,
-            llm_model=cfg.llm_model,
+            llm_model=llm_model_label,
             search_provider_primary="tavily",
             search_provider_fallback="brave",
             start_time=start_ts,
@@ -305,7 +311,7 @@ def main() -> int:
             failed_symbols=0,
             failed_list=[],
             model_version="",
-            llm_model=cfg.llm_model,
+            llm_model=llm_model_for_meta,
             search_provider_primary="tavily",
             search_provider_fallback="brave",
             start_time=start_ts,

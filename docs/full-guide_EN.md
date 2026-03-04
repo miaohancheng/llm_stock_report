@@ -76,20 +76,33 @@ python -m pip install -r requirements.txt
 cp .env.example .env
 ```
 Fill required values:
-- `OPENAI_API_KEY`
 - `TAVILY_API_KEY`
 - `BRAVE_API_KEY`
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_CHAT_ID`
 
+Configure at least one LLM path:
+- `LLM_PROVIDER=openai` + `OPENAI_API_KEY`
+- `LLM_PROVIDER=gemini` + `GEMINI_API_KEY`
+- `LLM_PROVIDER=ollama` + `OLLAMA_BASE_URL` + `OLLAMA_MODEL`
+
 Optional:
 - `TELEGRAM_MESSAGE_THREAD_ID`
 - `OPENAI_BASE_URL`
 - `OPENAI_MODEL`
+- `GEMINI_MODEL`
+- `GEMINI_BASE_URL`
+- `OLLAMA_MODEL`
+- `OLLAMA_BASE_URL`
+- `LLM_PROVIDER`
 - `MAX_STOCKS_PER_RUN`
 - `DETAIL_MESSAGE_CHAR_LIMIT`
 - `MODEL_EXPIRE_DAYS`
 - `STOCK_LIST_CN` / `STOCK_LIST_US` / `STOCK_LIST_HK`
+- `LLM_MAX_RETRIES`
+- `LLM_RETRY_BASE_DELAY_SECONDS`
+- `LLM_RETRY_MAX_DELAY_SECONDS`
+- `LLM_RETRY_JITTER_SECONDS`
 
 ## 5. Universe Configuration
 
@@ -187,20 +200,24 @@ Behavior:
 - `.github/workflows/weekly_retrain.yml`
 
 ## 9.2 Schedules (UTC)
-- `daily_cn.yml`: `30 9 * * 1-5` (17:30 Asia/Shanghai weekdays)
+- `daily_cn.yml`: `0 8 * * 1-5` (16:00 Asia/Shanghai weekdays)
 - `daily_hk.yml`: `30 9 * * 1-5` (17:30 Asia/Shanghai weekdays)
 - `daily_us.yml`: `30 23 * * 1-5` (07:30 Asia/Shanghai next day)
+- These are automatic runs for each trading-day window: CN/HK on Asia/Shanghai weekdays, US on Asia/Shanghai Tue-Sat morning.
 - `weekly_retrain.yml`: scheduled Sunday retraining
+- On GitHub-hosted runners, local Ollama is not reachable by default; use Ollama locally or on self-hosted runners.
 
 ## 9.3 GitHub Secrets
 Required:
-- `OPENAI_API_KEY`
 - `TAVILY_API_KEY`
 - `BRAVE_API_KEY`
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_CHAT_ID`
 
 Optional:
+- `OPENAI_API_KEY` (required when `LLM_PROVIDER=openai`)
+- `GEMINI_API_KEY` (required when `LLM_PROVIDER=gemini`)
+- `OLLAMA_API_KEY` (only for protected remote Ollama)
 - `TELEGRAM_MESSAGE_THREAD_ID`
 
 ## 9.4 GitHub Variables (optional)
@@ -210,6 +227,15 @@ Optional:
 - `STOCK_LIST_CN` / `STOCK_LIST_US` / `STOCK_LIST_HK` (env override for universe)
 - `OPENAI_BASE_URL`
 - `OPENAI_MODEL`
+- `LLM_PROVIDER` (`openai` / `gemini` / `ollama`)
+- `GEMINI_MODEL`
+- `GEMINI_BASE_URL`
+- `OLLAMA_MODEL`
+- `OLLAMA_BASE_URL`
+- `LLM_MAX_RETRIES` (default `6`)
+- `LLM_RETRY_BASE_DELAY_SECONDS` (default `5`)
+- `LLM_RETRY_MAX_DELAY_SECONDS` (default `120`)
+- `LLM_RETRY_JITTER_SECONDS` (default `1`)
 
 ## 9.5 Artifacts
 Each workflow uploads:
@@ -227,6 +253,14 @@ Retention: 14 days.
 - `FETCH_RETRY_BASE_DELAY_SECONDS`: base retry delay (default `15`)
 - `FETCH_RETRY_MAX_DELAY_SECONDS`: max retry delay (default `300`)
 - `FETCH_RETRY_JITTER_SECONDS`: random jitter seconds (default `2`)
+- `LLM_MAX_RETRIES`: max retry attempts for LLM calls (default `6`)
+- `LLM_RETRY_BASE_DELAY_SECONDS`: base delay for LLM retries (default `5`)
+- `LLM_RETRY_MAX_DELAY_SECONDS`: max delay for LLM retries (default `120`)
+- `LLM_RETRY_JITTER_SECONDS`: random jitter for LLM retries (default `1`)
+- `LLM_PROVIDER`: provider switch (`openai` / `gemini` / `ollama`)
+- `GEMINI_MODEL`: Gemini model name (default `gemini-2.0-flash`)
+- `OLLAMA_MODEL`: Ollama model name (default `qwen2.5:7b`)
+- `OLLAMA_BASE_URL`: Ollama base URL (default `http://127.0.0.1:11434`)
 
 ## 9.7 LLM Reliability Hardening
 
@@ -258,8 +292,10 @@ Check:
 
 ## 10.4 LLM errors
 Check:
-- `OPENAI_API_KEY`
-- `OPENAI_BASE_URL`
+- `LLM_PROVIDER` is one of `openai/gemini/ollama`
+- For `openai`: verify `OPENAI_API_KEY` and `OPENAI_BASE_URL`
+- For `gemini`: verify `GEMINI_API_KEY` and `GEMINI_BASE_URL`
+- For `ollama`: verify `OLLAMA_BASE_URL` reachability and model pull status
 - model availability
 
 ## 10.5 News is empty

@@ -13,7 +13,19 @@ fetch_max_retries: 5
 fetch_retry_base_delay_seconds: 15.0
 fetch_retry_max_delay_seconds: 300.0
 fetch_retry_jitter_seconds: 2.0
+llm_max_retries: 6
+llm_retry_base_delay_seconds: 5.0
+llm_retry_max_delay_seconds: 120.0
+llm_retry_jitter_seconds: 1.0
+llm_provider: openai
 prediction_top_n: 10
+# OpenAI-compatible provider
 llm_model: gpt-4o-mini
 openai_base_url: https://api.openai.com/v1
+# Gemini provider
+gemini_model: gemini-2.0-flash
+gemini_base_url: https://generativelanguage.googleapis.com/v1beta
+# Ollama local provider
+ollama_model: qwen2.5:7b
+ollama_base_url: http://127.0.0.1:11434
 timezone: Asia/Shanghai

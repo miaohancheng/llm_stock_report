@@ -75,20 +75,33 @@ python -m pip install -r requirements.txt
 cp .env.example .env
 ```
 然后在 `.env` 填写必需项：
-- `OPENAI_API_KEY`
 - `TAVILY_API_KEY`
 - `BRAVE_API_KEY`
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_CHAT_ID`
 
+LLM 至少配置一组：
+- `LLM_PROVIDER=openai` + `OPENAI_API_KEY`
+- `LLM_PROVIDER=gemini` + `GEMINI_API_KEY`
+- `LLM_PROVIDER=ollama` + `OLLAMA_BASE_URL` + `OLLAMA_MODEL`
+
 可选项：
 - `TELEGRAM_MESSAGE_THREAD_ID`
 - `OPENAI_BASE_URL`
 - `OPENAI_MODEL`
+- `GEMINI_MODEL`
+- `GEMINI_BASE_URL`
+- `OLLAMA_MODEL`
+- `OLLAMA_BASE_URL`
+- `LLM_PROVIDER`
 - `MAX_STOCKS_PER_RUN`
 - `DETAIL_MESSAGE_CHAR_LIMIT`
 - `MODEL_EXPIRE_DAYS`
 - `STOCK_LIST_CN` / `STOCK_LIST_US` / `STOCK_LIST_HK`
+- `LLM_MAX_RETRIES`
+- `LLM_RETRY_BASE_DELAY_SECONDS`
+- `LLM_RETRY_MAX_DELAY_SECONDS`
+- `LLM_RETRY_JITTER_SECONDS`
 
 ## 5. 股票池配置
 
@@ -186,20 +199,24 @@ python -m app.jobs.run_report --market cn --date 2026-03-04 --no-telegram
 - `.github/workflows/weekly_retrain.yml`
 
 ## 9.2 定时规则（UTC）
-- `daily_cn.yml`: `30 9 * * 1-5`（北京时间工作日 17:30）
+- `daily_cn.yml`: `0 8 * * 1-5`（北京时间工作日 16:00）
 - `daily_hk.yml`: `30 9 * * 1-5`（北京时间工作日 17:30）
 - `daily_us.yml`: `30 23 * * 1-5`（北京时间次日 07:30）
+- 以上为自动定时运行：CN/HK 为北京时间工作日；US 为北京时间周二到周六早晨（覆盖美股前一交易日）
 - `weekly_retrain.yml`: 周日定时
+- 使用 GitHub Hosted Runner 时，默认无法连到你本机 Ollama；Ollama 建议本地跑或用 self-hosted runner
 
 ## 9.3 GitHub Secrets
 必需：
-- `OPENAI_API_KEY`
 - `TAVILY_API_KEY`
 - `BRAVE_API_KEY`
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_CHAT_ID`
 
 可选：
+- `OPENAI_API_KEY`（`LLM_PROVIDER=openai` 时必需）
+- `GEMINI_API_KEY`（`LLM_PROVIDER=gemini` 时必需）
+- `OLLAMA_API_KEY`（仅远程 Ollama 需要）
 - `TELEGRAM_MESSAGE_THREAD_ID`
 
 ## 9.4 GitHub Variables（可选）
@@ -209,6 +226,15 @@ python -m app.jobs.run_report --market cn --date 2026-03-04 --no-telegram
 - `STOCK_LIST_CN` / `STOCK_LIST_US` / `STOCK_LIST_HK`（环境变量覆盖股票池）
 - `OPENAI_BASE_URL`
 - `OPENAI_MODEL`
+- `LLM_PROVIDER`（`openai` / `gemini` / `ollama`）
+- `GEMINI_MODEL`
+- `GEMINI_BASE_URL`
+- `OLLAMA_MODEL`
+- `OLLAMA_BASE_URL`
+- `LLM_MAX_RETRIES`（默认 6）
+- `LLM_RETRY_BASE_DELAY_SECONDS`（默认 5）
+- `LLM_RETRY_MAX_DELAY_SECONDS`（默认 120）
+- `LLM_RETRY_JITTER_SECONDS`（默认 1）
 
 ## 9.5 Artifact
 每次运行上传：
@@ -226,6 +252,14 @@ python -m app.jobs.run_report --market cn --date 2026-03-04 --no-telegram
 - `FETCH_RETRY_BASE_DELAY_SECONDS`：重试基础间隔秒数（默认 15）
 - `FETCH_RETRY_MAX_DELAY_SECONDS`：重试最大间隔秒数（默认 300）
 - `FETCH_RETRY_JITTER_SECONDS`：重试随机抖动秒数（默认 2）
+- `LLM_MAX_RETRIES`：LLM 请求最大重试次数（默认 6）
+- `LLM_RETRY_BASE_DELAY_SECONDS`：LLM 重试基础间隔秒数（默认 5）
+- `LLM_RETRY_MAX_DELAY_SECONDS`：LLM 重试最大间隔秒数（默认 120）
+- `LLM_RETRY_JITTER_SECONDS`：LLM 重试随机抖动秒数（默认 1）
+- `LLM_PROVIDER`：LLM 供应商（`openai` / `gemini` / `ollama`）
+- `GEMINI_MODEL`：Gemini 模型名（默认 `gemini-2.0-flash`）
+- `OLLAMA_MODEL`：Ollama 模型名（默认 `qwen2.5:7b`）
+- `OLLAMA_BASE_URL`：Ollama 地址（默认 `http://127.0.0.1:11434`）
 
 ## 9.7 LLM 输出可靠性增强
 
@@ -257,8 +291,10 @@ python -m app.jobs.run_report --market cn --date 2026-03-04 --no-telegram
 
 ## 10.4 LLM 调用失败
 检查：
-- `OPENAI_API_KEY` 是否有效
-- `OPENAI_BASE_URL` 是否正确
+- `LLM_PROVIDER` 是否配置为 `openai/gemini/ollama`
+- 若 `openai`：`OPENAI_API_KEY` / `OPENAI_BASE_URL` 是否正确
+- 若 `gemini`：`GEMINI_API_KEY` / `GEMINI_BASE_URL` 是否正确
+- 若 `ollama`：`OLLAMA_BASE_URL` 可否访问、`OLLAMA_MODEL` 是否已拉取
 - 模型名是否可用
 
 ## 10.5 新闻检索为空

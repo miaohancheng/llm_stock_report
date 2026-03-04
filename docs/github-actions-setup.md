@@ -22,14 +22,16 @@
 路径：`Settings` -> `Secrets and variables` -> `Actions` -> `Secrets` -> `New repository secret`
 
 必需 Secrets：
-1. `OPENAI_API_KEY`
-2. `TAVILY_API_KEY`
-3. `BRAVE_API_KEY`
-4. `TELEGRAM_BOT_TOKEN`
-5. `TELEGRAM_CHAT_ID`
+1. `TAVILY_API_KEY`
+2. `BRAVE_API_KEY`
+3. `TELEGRAM_BOT_TOKEN`
+4. `TELEGRAM_CHAT_ID`
 
 可选 Secrets：
-1. `TELEGRAM_MESSAGE_THREAD_ID`
+1. `OPENAI_API_KEY`（`LLM_PROVIDER=openai` 时必需）
+2. `GEMINI_API_KEY`（`LLM_PROVIDER=gemini` 时必需）
+3. `OLLAMA_API_KEY`（仅远程受保护 Ollama 需要）
+4. `TELEGRAM_MESSAGE_THREAD_ID`
 
 说明：
 - Secrets 用于密钥、token、chat id 等敏感字段。
@@ -44,6 +46,11 @@
 ```text
 OPENAI_MODEL=gpt-4o-mini
 OPENAI_BASE_URL=https://api.openai.com/v1
+LLM_PROVIDER=openai
+GEMINI_MODEL=gemini-2.0-flash
+GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=qwen2.5:7b
 
 MAX_STOCKS_PER_RUN=30
 DETAIL_MESSAGE_CHAR_LIMIT=3500
@@ -58,6 +65,10 @@ FETCH_MAX_RETRIES=5
 FETCH_RETRY_BASE_DELAY_SECONDS=15
 FETCH_RETRY_MAX_DELAY_SECONDS=300
 FETCH_RETRY_JITTER_SECONDS=2
+LLM_MAX_RETRIES=6
+LLM_RETRY_BASE_DELAY_SECONDS=5
+LLM_RETRY_MAX_DELAY_SECONDS=120
+LLM_RETRY_JITTER_SECONDS=1
 
 STOCK_LIST_CN=SH600519,SZ000001,SZ300750
 STOCK_LIST_US=AAPL,MSFT,NVDA
@@ -67,6 +78,7 @@ STOCK_LIST_HK=HK00700,HK03690,HK09988
 说明：
 - `STOCK_LIST_CN/US/HK` 已接入 workflow，会覆盖 `config/universe.yaml`。
 - 变量值用英文逗号分隔，不要换行。
+- GitHub Hosted Runner 通常无法访问你本地 `127.0.0.1:11434`，若要在 Actions 用 Ollama 建议 self-hosted runner。
 
 ## 5. Workflow 与变量映射关系
 
@@ -77,6 +89,17 @@ STOCK_LIST_HK=HK00700,HK03690,HK09988
 - `weekly_retrain.yml`
 
 因此代码中 `os.getenv(...)` 可以直接读取到配置。
+
+## 5.1 交易日自动调度确认
+
+当前定时（UTC）：
+- `daily_cn.yml`: `0 8 * * 1-5`（北京时间工作日 16:00）
+- `daily_hk.yml`: `30 9 * * 1-5`（北京时间工作日 17:30）
+- `daily_us.yml`: `30 23 * * 1-5`（北京时间周二到周六 07:30，覆盖美股前一交易日）
+
+说明：
+- 以上为自动触发，不需要手动运行。
+- A 股与港股相隔 1.5 小时，避免同一时刻并发拥塞。
 
 ## 6. 首次手动触发（推荐）
 
@@ -125,6 +148,22 @@ STOCK_LIST_HK=HK00700,HK03690,HK09988
 1. `STOCK_LIST_CN/US/HK`（Variables）
 2. `STOCK_LIST`（仅 CN 兼容）
 3. `config/universe.yaml`
+
+## 8.5 LLM 429 限流导致跳股
+建议提高：
+- `LLM_MAX_RETRIES`（如 8-10）
+- `LLM_RETRY_BASE_DELAY_SECONDS`（如 8-15）
+- `LLM_RETRY_MAX_DELAY_SECONDS`（如 180-300）
+
+说明：
+- 代码已对 `429/408/409/5xx` 和瞬时网络异常做重试。
+- 若重试后仍失败，才会按单股失败策略记录并跳过该股。
+
+## 8.6 切换 LLM 供应商
+示例：
+- OpenAI：`LLM_PROVIDER=openai` + 配置 `OPENAI_API_KEY`
+- Gemini：`LLM_PROVIDER=gemini` + 配置 `GEMINI_API_KEY`
+- Ollama：`LLM_PROVIDER=ollama` + 配置 `OLLAMA_BASE_URL` 与 `OLLAMA_MODEL`
 
 ## 9. 推荐上线顺序
 

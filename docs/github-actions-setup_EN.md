@@ -22,14 +22,16 @@ This document explains how to configure Actions, Secrets (keys), and Variables f
 Path: `Settings` -> `Secrets and variables` -> `Actions` -> `Secrets` -> `New repository secret`
 
 Required Secrets:
-1. `OPENAI_API_KEY`
-2. `TAVILY_API_KEY`
-3. `BRAVE_API_KEY`
-4. `TELEGRAM_BOT_TOKEN`
-5. `TELEGRAM_CHAT_ID`
+1. `TAVILY_API_KEY`
+2. `BRAVE_API_KEY`
+3. `TELEGRAM_BOT_TOKEN`
+4. `TELEGRAM_CHAT_ID`
 
 Optional:
-1. `TELEGRAM_MESSAGE_THREAD_ID`
+1. `OPENAI_API_KEY` (required when `LLM_PROVIDER=openai`)
+2. `GEMINI_API_KEY` (required when `LLM_PROVIDER=gemini`)
+3. `OLLAMA_API_KEY` (only for protected remote Ollama)
+4. `TELEGRAM_MESSAGE_THREAD_ID`
 
 Notes:
 - Keep API keys and tokens in Secrets only.
@@ -44,6 +46,11 @@ Recommended Variables:
 ```text
 OPENAI_MODEL=gpt-4o-mini
 OPENAI_BASE_URL=https://api.openai.com/v1
+LLM_PROVIDER=openai
+GEMINI_MODEL=gemini-2.0-flash
+GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=qwen2.5:7b
 
 MAX_STOCKS_PER_RUN=30
 DETAIL_MESSAGE_CHAR_LIMIT=3500
@@ -58,6 +65,10 @@ FETCH_MAX_RETRIES=5
 FETCH_RETRY_BASE_DELAY_SECONDS=15
 FETCH_RETRY_MAX_DELAY_SECONDS=300
 FETCH_RETRY_JITTER_SECONDS=2
+LLM_MAX_RETRIES=6
+LLM_RETRY_BASE_DELAY_SECONDS=5
+LLM_RETRY_MAX_DELAY_SECONDS=120
+LLM_RETRY_JITTER_SECONDS=1
 
 STOCK_LIST_CN=SH600519,SZ000001,SZ300750
 STOCK_LIST_US=AAPL,MSFT,NVDA
@@ -67,6 +78,7 @@ STOCK_LIST_HK=HK00700,HK03690,HK09988
 Notes:
 - `STOCK_LIST_CN/US/HK` already override `config/universe.yaml` in workflows.
 - Use comma-separated values, no line breaks.
+- GitHub-hosted runners usually cannot reach your local `127.0.0.1:11434`; use Ollama on self-hosted runners if needed.
 
 ## 5. Workflow-to-env mapping
 
@@ -77,6 +89,17 @@ These workflows already inject the variables/secrets into runtime env:
 - `weekly_retrain.yml`
 
 So application code can read them via `os.getenv(...)`.
+
+## 5.1 Trading-day schedule confirmation
+
+Current schedules (UTC):
+- `daily_cn.yml`: `0 8 * * 1-5` (16:00 Asia/Shanghai weekdays)
+- `daily_hk.yml`: `30 9 * * 1-5` (17:30 Asia/Shanghai weekdays)
+- `daily_us.yml`: `30 23 * * 1-5` (07:30 Asia/Shanghai Tue-Sat; covers prior US trading day)
+
+Notes:
+- These are automatic triggers; no manual run is required.
+- CN and HK runs are staggered by 1.5 hours to reduce contention.
 
 ## 6. First manual run (recommended)
 
@@ -123,6 +146,22 @@ Priority:
 1. `STOCK_LIST_CN/US/HK` (Variables)
 2. `STOCK_LIST` (legacy CN only)
 3. `config/universe.yaml`
+
+## 8.5 LLM 429 rate-limit skips
+Try higher values:
+- `LLM_MAX_RETRIES` (e.g. 8-10)
+- `LLM_RETRY_BASE_DELAY_SECONDS` (e.g. 8-15)
+- `LLM_RETRY_MAX_DELAY_SECONDS` (e.g. 180-300)
+
+Notes:
+- The code retries on `429/408/409/5xx` and transient network failures.
+- A symbol is skipped only after retry budget is exhausted.
+
+## 8.6 Switch LLM provider
+Examples:
+- OpenAI: `LLM_PROVIDER=openai` + `OPENAI_API_KEY`
+- Gemini: `LLM_PROVIDER=gemini` + `GEMINI_API_KEY`
+- Ollama: `LLM_PROVIDER=ollama` + `OLLAMA_BASE_URL` + `OLLAMA_MODEL`
 
 ## 9. Recommended rollout
 
