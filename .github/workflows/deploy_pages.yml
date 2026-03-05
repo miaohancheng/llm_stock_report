@@ -8,6 +8,12 @@ on:
       - "pages_data/**"
       - "scripts/build_pages.py"
       - ".github/workflows/deploy_pages.yml"
+  workflow_run:
+    workflows:
+      - "Daily CN Report"
+      - "Daily HK Report"
+      - "Daily US Report"
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -21,12 +27,15 @@ concurrency:
 
 jobs:
   build:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     env:
       PAGES_DEFAULT_LANGUAGE: ${{ vars.PAGES_DEFAULT_LANGUAGE || vars.REPORT_LANGUAGE || 'zh' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Setup Python
         uses: actions/setup-python@v5

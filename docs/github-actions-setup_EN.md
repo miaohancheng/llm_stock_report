@@ -116,7 +116,7 @@ Notes:
 
 The repository now includes two connected pieces:
 1. `daily_cn/hk/us.yml` runs `python -m app.jobs.export_case` after each report, then commits `pages_data/cases/**` back to the repo.
-2. `deploy_pages.yml` auto-builds and publishes the Pages site when `docs/**` or `pages_data/**` changes.
+2. `deploy_pages.yml` auto-builds and publishes the Pages site when `docs/**` or `pages_data/**` changes, and it also runs after `Daily CN/HK/US Report` completes (covers manual rerun scenarios).
 
 First-time enablement:
 1. Go to `Settings` -> `Pages`.

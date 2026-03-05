@@ -116,7 +116,7 @@ STOCK_LIST_HK=HK00700,HK03690,HK09988
 
 项目已内置两段能力：
 1. `daily_cn/hk/us.yml` 会在日报结束后执行 `python -m app.jobs.export_case`，把结果写入 `pages_data/cases/**` 并自动提交回仓库。
-2. `deploy_pages.yml` 在 `docs/**` 或 `pages_data/**` 变更时自动构建并发布站点。
+2. `deploy_pages.yml` 在 `docs/**` 或 `pages_data/**` 变更时自动构建并发布站点，同时也会在 `Daily CN/HK/US Report` 完成后触发一次（用于覆盖手动回跑场景）。
 
 首次启用步骤：
 1. 打开 `Settings` -> `Pages`。
