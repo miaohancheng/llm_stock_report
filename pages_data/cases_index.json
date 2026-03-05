@@ -1,1 +1,14 @@
-[]
+[
+  {
+    "id": "us-2026-03-05",
+    "market": "us",
+    "date": "2026-03-05",
+    "title": "[US] 2026-03-05 Daily Case",
+    "path": "cases/us/2026-03-05.md",
+    "summary_line": "> [US] 共分析 0 只股票 | 🟢买入:0 🟡观望:0 🟠减仓:0 🔴卖出:0",
+    "status": "failed",
+    "success_symbols": 0,
+    "total_symbols": 3,
+    "updated_at": "2026-03-05T00:01:04+00:00"
+  }
+]
