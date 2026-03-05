@@ -49,6 +49,7 @@ OPENAI_MODEL=gpt-4o-mini
 OPENAI_BASE_URL=https://api.openai.com/v1
 LLM_PROVIDER=openai
 REPORT_LANGUAGE=zh
+PAGES_DEFAULT_LANGUAGE=zh
 GEMINI_MODEL=gemini-2.0-flash
 GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
 OLLAMA_BASE_URL=http://127.0.0.1:11434
@@ -81,6 +82,7 @@ STOCK_LIST_HK=HK00700,HK03690,HK09988
 Notes:
 - `STOCK_LIST_CN/US/HK` already override `config/universe.yaml` in workflows.
 - `REPORT_LANGUAGE` supports `zh` or `en` for Telegram/report output language.
+- `PAGES_DEFAULT_LANGUAGE` supports `zh` or `en` for default Pages entry route (`/zh/` or `/en/`).
 - Use comma-separated values, no line breaks.
 - GitHub-hosted runners usually cannot reach your local `127.0.0.1:11434`; use Ollama on self-hosted runners if needed.
 

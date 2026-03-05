@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>GitHub Actions 配置（中文）</title>
+  <style>
+    :root {
+      --bg: #f4f8ff;
+      --text: #1e2a3a;
+      --muted: #5b6b7f;
+      --card: #ffffff;
+      --line: #dfe7f5;
+      --accent: #175fe6;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; color: var(--text); background: var(--bg); }
+    a { color: var(--accent); text-decoration: none; }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 20px 16px 40px; }
+    .top {
+      background: linear-gradient(135deg, #0b3fae 0%, #1f7cff 100%);
+      color: #fff; border-radius: 14px; padding: 20px;
+      box-shadow: 0 10px 24px rgba(10, 44, 117, 0.28);
+    }
+    .top h1 { margin: 0; font-size: 22px; }
+    .top p { margin: 8px 0 0; opacity: 0.92; }
+    .nav { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .nav a {
+      color: #d9e7ff; border: 1px solid rgba(255,255,255,0.26);
+      border-radius: 999px; padding: 6px 12px; font-size: 13px;
+    }
+    .nav a.active { background: #fff; color: #0b3fae; border-color: #fff; }
+    .nav .lang-switch { margin-left: auto; }
+    .content { margin-top: 18px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+    .muted { color: var(--muted); }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid var(--line); padding: 8px 10px; font-size: 14px; text-align: left; }
+    th { background: #f6f9ff; }
+    code { background: #eef3ff; border-radius: 4px; padding: 1px 4px; }
+    pre code { display: block; overflow-x: auto; padding: 12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="top">
+      <h1>LLM Stock Report · GitHub Pages</h1>
+      <p>详细使用文档 + 每日案例更新</p>
+      <nav class="nav">
+        <a class="" href="../../zh/index.html">首页</a>
+        <a class="active" href="../../zh/docs.html">使用文档</a>
+        <a class="" href="../../zh/cases.html">每日案例</a>
+        <a class="lang-switch" href="../../en/docs/actions.html">English</a>
+      </nav>
+    </section>
+    <main class="content">
+      <h1 id="github-actions">GitHub Actions 配置手册（中文）</h1>
+<p>本文档专门说明如何在 GitHub 仓库中配置 Actions、Secrets（key）和 Variables，并完成首次可用运行。</p>
+<h2 id="1">1. 前置条件</h2>
+<ul>
+<li>你已将仓库推送到 GitHub。</li>
+<li>仓库中包含以下 workflow 文件：</li>
+<li><code>.github/workflows/daily_cn.yml</code></li>
+<li><code>.github/workflows/daily_hk.yml</code></li>
+<li><code>.github/workflows/daily_us.yml</code></li>
+<li><code>.github/workflows/weekly_retrain.yml</code></li>
+<li><code>.github/workflows/deploy_pages.yml</code></li>
+</ul>
+<h2 id="2-actions">2. 启用 Actions</h2>
+<ol>
+<li>打开仓库页面。</li>
+<li>点击顶部 <code>Actions</code>。</li>
+<li>如果提示未启用，点击启用按钮（例如 <code>Enable</code> / <code>I understand my workflows...</code>）。</li>
+</ol>
+<h2 id="3-secrets-key">3. 配置 Secrets（敏感 key）</h2>
+<p>路径：<code>Settings</code> -&gt; <code>Secrets and variables</code> -&gt; <code>Actions</code> -&gt; <code>Secrets</code> -&gt; <code>New repository secret</code></p>
+<p>必需 Secrets：<br />
+1. <code>TAVILY_API_KEY</code><br />
+2. <code>BRAVE_API_KEY</code><br />
+3. <code>TELEGRAM_BOT_TOKEN</code><br />
+4. <code>TELEGRAM_CHAT_ID</code></p>
+<p>可选 Secrets：<br />
+1. <code>OPENAI_API_KEY</code>（<code>LLM_PROVIDER=openai</code> 时必需）<br />
+2. <code>GEMINI_API_KEY</code>（<code>LLM_PROVIDER=gemini</code> 时必需）<br />
+3. <code>OLLAMA_API_KEY</code>（仅远程受保护 Ollama 需要）<br />
+4. <code>TELEGRAM_MESSAGE_THREAD_ID</code></p>
+<p>说明：<br />
+- Secrets 用于密钥、token、chat id 等敏感字段。<br />
+- Secrets 不会在日志中明文展示。</p>
+<h2 id="4-variables">4. 配置 Variables（非敏感配置）</h2>
+<p>路径：<code>Settings</code> -&gt; <code>Secrets and variables</code> -&gt; <code>Actions</code> -&gt; <code>Variables</code> -&gt; <code>New repository variable</code></p>
+<p>建议 Variables（可直接照抄）：</p>
+<pre><code class="language-text">OPENAI_MODEL=gpt-4o-mini
+OPENAI_BASE_URL=https://api.openai.com/v1
+LLM_PROVIDER=openai
+REPORT_LANGUAGE=zh
+PAGES_DEFAULT_LANGUAGE=zh
+GEMINI_MODEL=gemini-2.0-flash
+GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=qwen2.5:7b
+
+MAX_STOCKS_PER_RUN=30
+DETAIL_MESSAGE_CHAR_LIMIT=3500
+MODEL_EXPIRE_DAYS=8
+MARKET_INDEX_FETCH_ENABLED=true
+
+TRAINING_WINDOW_DAYS=730
+FEATURE_WARMUP_DAYS=60
+HISTORY_PRUNE_BUFFER_DAYS=60
+INCREMENTAL_OVERLAP_DAYS=7
+
+FETCH_MAX_RETRIES=5
+FETCH_RETRY_BASE_DELAY_SECONDS=15
+FETCH_RETRY_MAX_DELAY_SECONDS=300
+FETCH_RETRY_JITTER_SECONDS=2
+LLM_MAX_RETRIES=6
+LLM_RETRY_BASE_DELAY_SECONDS=5
+LLM_RETRY_MAX_DELAY_SECONDS=120
+LLM_RETRY_JITTER_SECONDS=1
+
+STOCK_LIST_CN=SH600519,SZ000001,SZ300750
+STOCK_LIST_US=AAPL,MSFT,NVDA
+STOCK_LIST_HK=HK00700,HK03690,HK09988
+</code></pre>
+<p>说明：<br />
+- <code>STOCK_LIST_CN/US/HK</code> 已接入 workflow，会覆盖 <code>config/universe.yaml</code>。<br />
+- <code>REPORT_LANGUAGE</code> 支持 <code>zh</code> 或 <code>en</code>，用于控制 Telegram 推送语言。<br />
+- <code>PAGES_DEFAULT_LANGUAGE</code> 支持 <code>zh</code> 或 <code>en</code>，用于控制 Pages 默认入口（<code>/zh/</code> 或 <code>/en/</code>）。<br />
+- 变量值用英文逗号分隔，不要换行。<br />
+- GitHub Hosted Runner 通常无法访问你本地 <code>127.0.0.1:11434</code>，若要在 Actions 用 Ollama 建议 self-hosted runner。</p>
+<h2 id="5-workflow">5. Workflow 与变量映射关系</h2>
+<p>当前 workflow 已把上述变量注入运行环境：<br />
+- <code>daily_cn.yml</code><br />
+- <code>daily_hk.yml</code><br />
+- <code>daily_us.yml</code><br />
+- <code>weekly_retrain.yml</code></p>
+<p>因此代码中 <code>os.getenv(...)</code> 可以直接读取到配置。</p>
+<h2 id="51">5.1 交易日自动调度确认</h2>
+<p>当前定时（UTC）：<br />
+- <code>daily_cn.yml</code>: <code>0 8 * * 1-5</code>（北京时间工作日 16:00）<br />
+- <code>daily_hk.yml</code>: <code>30 9 * * 1-5</code>（北京时间工作日 17:30）<br />
+- <code>daily_us.yml</code>: <code>30 23 * * 1-5</code>（北京时间周二到周六 07:30，覆盖美股前一交易日）</p>
+<p>说明：<br />
+- 以上为自动触发，不需要手动运行。<br />
+- A 股与港股相隔 1.5 小时，避免同一时刻并发拥塞。</p>
+<h2 id="52-github-pages">5.2 GitHub Pages 部署与案例自动更新</h2>
+<p>项目已内置两段能力：<br />
+1. <code>daily_cn/hk/us.yml</code> 会在日报结束后执行 <code>python -m app.jobs.export_case</code>，把结果写入 <code>pages_data/cases/**</code> 并自动提交回仓库。<br />
+2. <code>deploy_pages.yml</code> 在 <code>docs/**</code> 或 <code>pages_data/**</code> 变更时自动构建并发布站点。</p>
+<p>首次启用步骤：<br />
+1. 打开 <code>Settings</code> -&gt; <code>Pages</code>。<br />
+2. 在 <code>Build and deployment</code> 中把 <code>Source</code> 设为 <code>GitHub Actions</code>。<br />
+3. 回到 <code>Actions</code> 手动触发一次 <code>Deploy GitHub Pages</code>（或等待下一次日报后自动触发）。</p>
+<p>发布后站点包含两块内容：<br />
+- 详细使用文档（中英文）<br />
+- 每日案例更新（按日期倒序展示）</p>
+<h2 id="6">6. 首次手动触发（推荐）</h2>
+<p>建议先手动跑一次确认配置正确。</p>
+<ol>
+<li>打开 <code>Actions</code>。</li>
+<li>选择 <code>Daily CN Report</code>（或 HK/US）。</li>
+<li>点击 <code>Run workflow</code>。</li>
+<li><code>date</code> 可留空（默认按北京时间当天），也可填如 <code>2026-03-04</code>。</li>
+<li>观察日志是否完成，并检查 Artifact 是否上传。</li>
+</ol>
+<h2 id="7">7. 验证检查清单</h2>
+<p>一次成功运行后检查：<br />
+1. Actions 日志里是否出现 <code>Outputs written:</code>。<br />
+2. Artifact 是否包含：<br />
+   - <code>outputs/**</code><br />
+   - <code>models/**</code><br />
+3. Telegram 是否收到：<br />
+   - 一条摘要<br />
+   - 若干条分段详情</p>
+<h2 id="8">8. 常见问题</h2>
+<h2 id="81-variable">8.1 配了 Variable 但不生效</h2>
+<p>检查：<br />
+- 名称是否完全一致（区分大小写）。<br />
+- 是否配置在当前仓库，而不是别的仓库/环境。<br />
+- workflow 里是否有对应 <code>env:</code> 注入（本项目已配置）。</p>
+<h2 id="82-telegram">8.2 Telegram 没收到消息</h2>
+<p>检查：<br />
+- <code>TELEGRAM_BOT_TOKEN</code> 是否正确。<br />
+- <code>TELEGRAM_CHAT_ID</code> 是否正确。<br />
+- 机器人是否已加入目标群并有发言权限。<br />
+- 使用 Topic 时是否正确设置 <code>TELEGRAM_MESSAGE_THREAD_ID</code>。</p>
+<h2 id="83">8.3 数据抓取仍偶发失败</h2>
+<p>建议提高：<br />
+- <code>FETCH_MAX_RETRIES</code>（如 6-8）<br />
+- <code>FETCH_RETRY_BASE_DELAY_SECONDS</code>（如 20）<br />
+- <code>FETCH_RETRY_MAX_DELAY_SECONDS</code>（如 360）</p>
+<h2 id="84">8.4 股票池配置冲突</h2>
+<p>优先级：<br />
+1. <code>STOCK_LIST_CN/US/HK</code>（Variables）<br />
+2. <code>STOCK_LIST</code>（仅 CN 兼容）<br />
+3. <code>config/universe.yaml</code></p>
+<h2 id="85-llm-429">8.5 LLM 429 限流导致跳股</h2>
+<p>建议提高：<br />
+- <code>LLM_MAX_RETRIES</code>（如 8-10）<br />
+- <code>LLM_RETRY_BASE_DELAY_SECONDS</code>（如 8-15）<br />
+- <code>LLM_RETRY_MAX_DELAY_SECONDS</code>（如 180-300）</p>
+<p>说明：<br />
+- 代码已对 <code>429/408/409/5xx</code> 和瞬时网络异常做重试。<br />
+- 若重试后仍失败，才会按单股失败策略记录并跳过该股。</p>
+<h2 id="86-llm">8.6 切换 LLM 供应商</h2>
+<p>示例：<br />
+- OpenAI：<code>LLM_PROVIDER=openai</code> + 配置 <code>OPENAI_API_KEY</code><br />
+- Gemini：<code>LLM_PROVIDER=gemini</code> + 配置 <code>GEMINI_API_KEY</code><br />
+- Ollama：<code>LLM_PROVIDER=ollama</code> + 配置 <code>OLLAMA_BASE_URL</code> 与 <code>OLLAMA_MODEL</code></p>
+<h2 id="9">9. 推荐上线顺序</h2>
+<ol>
+<li>先只配 <code>CN</code>，手动跑通。</li>
+<li>再配 <code>US</code>、<code>HK</code>。</li>
+<li>最后观察 3 个交易日的定时稳定性。</li>
+</ol>
+    </main>
+  </div>
+</body>
+</html>

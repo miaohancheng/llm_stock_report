@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>English Full Guide</title>
+  <style>
+    :root {
+      --bg: #f4f8ff;
+      --text: #1e2a3a;
+      --muted: #5b6b7f;
+      --card: #ffffff;
+      --line: #dfe7f5;
+      --accent: #175fe6;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; color: var(--text); background: var(--bg); }
+    a { color: var(--accent); text-decoration: none; }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 20px 16px 40px; }
+    .top {
+      background: linear-gradient(135deg, #0b3fae 0%, #1f7cff 100%);
+      color: #fff; border-radius: 14px; padding: 20px;
+      box-shadow: 0 10px 24px rgba(10, 44, 117, 0.28);
+    }
+    .top h1 { margin: 0; font-size: 22px; }
+    .top p { margin: 8px 0 0; opacity: 0.92; }
+    .nav { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .nav a {
+      color: #d9e7ff; border: 1px solid rgba(255,255,255,0.26);
+      border-radius: 999px; padding: 6px 12px; font-size: 13px;
+    }
+    .nav a.active { background: #fff; color: #0b3fae; border-color: #fff; }
+    .nav .lang-switch { margin-left: auto; }
+    .content { margin-top: 18px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+    .muted { color: var(--muted); }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid var(--line); padding: 8px 10px; font-size: 14px; text-align: left; }
+    th { background: #f6f9ff; }
+    code { background: #eef3ff; border-radius: 4px; padding: 1px 4px; }
+    pre code { display: block; overflow-x: auto; padding: 12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="top">
+      <h1>LLM Stock Report · GitHub Pages</h1>
+      <p>Detailed docs + daily case updates</p>
+      <nav class="nav">
+        <a class="" href="../../en/index.html">Home</a>
+        <a class="active" href="../../en/docs.html">Docs</a>
+        <a class="" href="../../en/cases.html">Daily Cases</a>
+        <a class="lang-switch" href="../../zh/docs/guide.html">中文</a>
+      </nav>
+    </section>
+    <main class="content">
+      <h1 id="llm_stock_report-full-guide-english">llm_stock_report Full Guide (English)</h1>
+<p>This guide covers end-to-end usage: local runs, GitHub Actions automation, configuration, model/data behavior, and troubleshooting.</p>
+<p>For a step-by-step GitHub Actions setup walkthrough:<br />
+- <a href="github-actions-setup_EN.md">docs/github-actions-setup_EN.md</a></p>
+<h2 id="1-scope">1. Scope</h2>
+<p><code>llm_stock_report</code> is a research/reporting pipeline that:<br />
+- retrains CN/US/HK models weekly,<br />
+- runs next-day prediction daily,<br />
+- combines news evidence and LLM reasoning,<br />
+- sends summary + detailed messages to Telegram.</p>
+<p>It is not an auto-trading system.</p>
+<h2 id="2-runtime-pipeline">2. Runtime Pipeline</h2>
+<p>A daily report run (<code>run_report</code>) executes:<br />
+1. Load symbol universe from <code>config/universe.yaml</code><br />
+2. Fetch historical market data<br />
+   - use local cache first and fetch only missing ranges<br />
+   - apply exponential retry on fetch failures<br />
+3. Build technical features and <code>next_day_return</code><br />
+4. Load latest model (auto-retrain if missing/expired)<br />
+5. Predict and rank symbols<br />
+6. Fetch news (Tavily primary, Brave fallback)<br />
+7. Generate Chinese narratives via OpenAI<br />
+8. Render outputs and send Telegram messages</p>
+<p>A retrain run (<code>run_retrain</code>) executes:<br />
+- fetch data -&gt; build features -&gt; train -&gt; save model.</p>
+<h2 id="3-project-layout">3. Project Layout</h2>
+<pre><code class="language-text">app/
+  common/      config, logging, schemas
+  data/        data fetchers and symbol normalization
+  features/    technical indicators
+  model/       frame builder, trainer, predictor, registry
+  news/        Tavily/Brave search + fallback
+  llm/         OpenAI client + prompts + reasoner
+  report/      markdown rendering + Telegram sender
+  jobs/        CLI entrypoints
+
+config/
+  universe.yaml
+  report.yaml
+
+outputs/{market}/{date}/
+  summary.md
+  details.md
+  predictions.csv
+  run_meta.json
+
+models/{market}/{model_version}/
+  model.pkl
+  metadata.json
+</code></pre>
+<h2 id="4-environment-setup">4. Environment Setup</h2>
+<h2 id="41-python">4.1 Python</h2>
+<ul>
+<li>Python 3.11 recommended</li>
+</ul>
+<h2 id="42-install">4.2 Install</h2>
+<pre><code class="language-bash">python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+</code></pre>
+<h2 id="43-environment-variables">4.3 Environment Variables</h2>
+<pre><code class="language-bash">cp .env.example .env
+</code></pre>
+<p>Fill required values:<br />
+- <code>TAVILY_API_KEY</code><br />
+- <code>BRAVE_API_KEY</code><br />
+- <code>TELEGRAM_BOT_TOKEN</code><br />
+- <code>TELEGRAM_CHAT_ID</code></p>
+<p>Configure at least one LLM path:<br />
+- <code>LLM_PROVIDER=openai</code> + <code>OPENAI_API_KEY</code><br />
+- <code>LLM_PROVIDER=gemini</code> + <code>GEMINI_API_KEY</code><br />
+- <code>LLM_PROVIDER=ollama</code> + <code>OLLAMA_BASE_URL</code> + <code>OLLAMA_MODEL</code></p>
+<p>Optional:<br />
+- <code>TELEGRAM_MESSAGE_THREAD_ID</code><br />
+- <code>OPENAI_BASE_URL</code><br />
+- <code>OPENAI_MODEL</code><br />
+- <code>GEMINI_MODEL</code><br />
+- <code>GEMINI_BASE_URL</code><br />
+- <code>OLLAMA_MODEL</code><br />
+- <code>OLLAMA_BASE_URL</code><br />
+- <code>LLM_PROVIDER</code><br />
+- <code>REPORT_LANGUAGE</code> (<code>zh</code> / <code>en</code>, default <code>zh</code>)<br />
+- <code>PAGES_DEFAULT_LANGUAGE</code> (<code>zh</code> / <code>en</code>, default <code>zh</code>)<br />
+- <code>MAX_STOCKS_PER_RUN</code><br />
+- <code>DETAIL_MESSAGE_CHAR_LIMIT</code><br />
+- <code>MODEL_EXPIRE_DAYS</code><br />
+- <code>MARKET_INDEX_FETCH_ENABLED</code> (default <code>true</code>)<br />
+- <code>STOCK_LIST_CN</code> / <code>STOCK_LIST_US</code> / <code>STOCK_LIST_HK</code><br />
+- <code>LLM_MAX_RETRIES</code><br />
+- <code>LLM_RETRY_BASE_DELAY_SECONDS</code><br />
+- <code>LLM_RETRY_MAX_DELAY_SECONDS</code><br />
+- <code>LLM_RETRY_JITTER_SECONDS</code></p>
+<h2 id="5-universe-configuration">5. Universe Configuration</h2>
+<p>Edit <code>config/universe.yaml</code>:</p>
+<pre><code class="language-yaml">cn:
+  - SH600519
+  - SZ000001
+  - SZ300750
+us:
+  - AAPL
+  - MSFT
+  - NVDA
+hk:
+  - HK00700
+  - HK03690
+  - HK09988
+</code></pre>
+<p>Notes:<br />
+- CN accepts <code>SHxxxxxx</code> / <code>SZxxxxxx</code> or plain 6-digit symbols (normalized internally).<br />
+- US uses normal tickers.<br />
+- HK accepts <code>HK00700</code>, <code>00700</code>, <code>0700</code>, or <code>700</code> (normalized to <code>HK00700</code>).<br />
+- Per-run symbol count is capped by <code>MAX_STOCKS_PER_RUN</code> (default 30).</p>
+<h2 id="6-local-commands">6. Local Commands</h2>
+<h2 id="61-retrain">6.1 Retrain</h2>
+<pre><code class="language-bash">python -m app.jobs.run_retrain --market cn --date 2026-03-04
+python -m app.jobs.run_retrain --market us --date 2026-03-04
+python -m app.jobs.run_retrain --market hk --date 2026-03-04
+</code></pre>
+<p>Note: retraining checks local cache under <code>qlib_data/history/</code>, incrementally tops up missing history, and prunes stale rows outside retention.</p>
+<h2 id="62-daily-report">6.2 Daily Report</h2>
+<pre><code class="language-bash">python -m app.jobs.run_report --market cn --date 2026-03-04
+python -m app.jobs.run_report --market us --date 2026-03-04
+python -m app.jobs.run_report --market hk --date 2026-03-04
+</code></pre>
+<p>Run without Telegram sending:</p>
+<pre><code class="language-bash">python -m app.jobs.run_report --market cn --date 2026-03-04 --no-telegram
+</code></pre>
+<h2 id="7-output-contract">7. Output Contract</h2>
+<p><code>predictions.csv</code> columns:<br />
+- <code>market</code><br />
+- <code>symbol</code><br />
+- <code>asof_date</code><br />
+- <code>score</code><br />
+- <code>rank</code><br />
+- <code>side</code><br />
+- <code>pred_return</code><br />
+- <code>model_version</code><br />
+- <code>data_window_start</code><br />
+- <code>data_window_end</code></p>
+<p><code>run_meta.json</code> keys:<br />
+- <code>run_id</code><br />
+- <code>market</code><br />
+- <code>status</code><br />
+- <code>total_symbols</code><br />
+- <code>success_symbols</code><br />
+- <code>failed_symbols</code><br />
+- <code>failed_list</code><br />
+- <code>model_version</code><br />
+- <code>llm_model</code><br />
+- <code>search_provider_primary</code><br />
+- <code>search_provider_fallback</code><br />
+- <code>start_time</code><br />
+- <code>end_time</code></p>
+<h2 id="8-telegram-protocol">8. Telegram Protocol</h2>
+<p>Send order:<br />
+1. Summary message (<code>[CN] YYYY-MM-DD 日报摘要</code>)<br />
+2. Per-symbol detail chunks (<code>[CN][symbol][i/n]</code>)<br />
+3. Market overview message (<code>[CN][MARKET][1/1]</code>)</p>
+<p>Behavior:<br />
+- Max message length default: 3500 chars<br />
+- Long content is force-chunked with <code>(i/n)</code> markers<br />
+- Markdown content is escaped before sending</p>
+<h2 id="9-github-actions">9. GitHub Actions</h2>
+<h2 id="91-workflow-files">9.1 Workflow files</h2>
+<ul>
+<li><code>.github/workflows/daily_cn.yml</code></li>
+<li><code>.github/workflows/daily_hk.yml</code></li>
+<li><code>.github/workflows/daily_us.yml</code></li>
+<li><code>.github/workflows/weekly_retrain.yml</code></li>
+<li><code>.github/workflows/deploy_pages.yml</code></li>
+</ul>
+<h2 id="92-schedules-utc">9.2 Schedules (UTC)</h2>
+<ul>
+<li><code>daily_cn.yml</code>: <code>0 8 * * 1-5</code> (16:00 Asia/Shanghai weekdays)</li>
+<li><code>daily_hk.yml</code>: <code>30 9 * * 1-5</code> (17:30 Asia/Shanghai weekdays)</li>
+<li><code>daily_us.yml</code>: <code>30 23 * * 1-5</code> (07:30 Asia/Shanghai next day)</li>
+<li>These are automatic runs for each trading-day window: CN/HK on Asia/Shanghai weekdays, US on Asia/Shanghai Tue-Sat morning.</li>
+<li><code>weekly_retrain.yml</code>: scheduled Sunday retraining</li>
+<li>On GitHub-hosted runners, local Ollama is not reachable by default; use Ollama locally or on self-hosted runners.</li>
+<li><code>deploy_pages.yml</code>: auto-publishes GitHub Pages when <code>docs/**</code> or <code>pages_data/**</code> changes (docs + daily cases)</li>
+</ul>
+<h2 id="921-github-pages-notes">9.2.1 GitHub Pages notes</h2>
+<ul>
+<li>After each daily report, <code>python -m app.jobs.export_case</code> writes a case snapshot into <code>pages_data/cases/**</code>.</li>
+<li><code>deploy_pages.yml</code> renders docs + cases into a static site and deploys it to Pages.</li>
+<li>For first-time setup, go to <code>Settings -&gt; Pages</code> and set <code>Source</code> to <code>GitHub Actions</code>.</li>
+</ul>
+<h2 id="93-github-secrets">9.3 GitHub Secrets</h2>
+<p>Required:<br />
+- <code>TAVILY_API_KEY</code><br />
+- <code>BRAVE_API_KEY</code><br />
+- <code>TELEGRAM_BOT_TOKEN</code><br />
+- <code>TELEGRAM_CHAT_ID</code></p>
+<p>Optional:<br />
+- <code>OPENAI_API_KEY</code> (required when <code>LLM_PROVIDER=openai</code>)<br />
+- <code>GEMINI_API_KEY</code> (required when <code>LLM_PROVIDER=gemini</code>)<br />
+- <code>OLLAMA_API_KEY</code> (only for protected remote Ollama)<br />
+- <code>TELEGRAM_MESSAGE_THREAD_ID</code></p>
+<h2 id="94-github-variables-optional">9.4 GitHub Variables (optional)</h2>
+<ul>
+<li><code>MAX_STOCKS_PER_RUN</code> (default 30)</li>
+<li><code>DETAIL_MESSAGE_CHAR_LIMIT</code> (default 3500)</li>
+<li><code>MODEL_EXPIRE_DAYS</code> (default 8)</li>
+<li><code>STOCK_LIST_CN</code> / <code>STOCK_LIST_US</code> / <code>STOCK_LIST_HK</code> (env override for universe)</li>
+<li><code>OPENAI_BASE_URL</code></li>
+<li><code>OPENAI_MODEL</code></li>
+<li><code>LLM_PROVIDER</code> (<code>openai</code> / <code>gemini</code> / <code>ollama</code>)</li>
+<li><code>REPORT_LANGUAGE</code> (<code>zh</code> / <code>en</code>, default <code>zh</code>)</li>
+<li><code>PAGES_DEFAULT_LANGUAGE</code> (<code>zh</code> / <code>en</code>, default <code>zh</code>)</li>
+<li><code>GEMINI_MODEL</code></li>
+<li><code>GEMINI_BASE_URL</code></li>
+<li><code>OLLAMA_MODEL</code></li>
+<li><code>OLLAMA_BASE_URL</code></li>
+<li><code>LLM_MAX_RETRIES</code> (default <code>6</code>)</li>
+<li><code>LLM_RETRY_BASE_DELAY_SECONDS</code> (default <code>5</code>)</li>
+<li><code>LLM_RETRY_MAX_DELAY_SECONDS</code> (default <code>120</code>)</li>
+<li><code>LLM_RETRY_JITTER_SECONDS</code> (default <code>1</code>)</li>
+<li><code>MARKET_INDEX_FETCH_ENABLED</code> (default <code>true</code>)</li>
+</ul>
+<h2 id="95-artifacts">9.5 Artifacts</h2>
+<p>Each workflow uploads:<br />
+- <code>outputs/**</code><br />
+- <code>models/**</code><br />
+Retention: 14 days.</p>
+<h2 id="96-training-window-and-retry-knobs">9.6 Training Window and Retry Knobs</h2>
+<ul>
+<li><code>TRAINING_WINDOW_DAYS</code>: main training window (default <code>730</code>)</li>
+<li><code>FEATURE_WARMUP_DAYS</code>: extra warmup days for indicators (default <code>60</code>)</li>
+<li><code>HISTORY_PRUNE_BUFFER_DAYS</code>: extra cache retention (default <code>60</code>)</li>
+<li><code>INCREMENTAL_OVERLAP_DAYS</code>: overlap days for incremental sync (default <code>7</code>)</li>
+<li><code>FETCH_MAX_RETRIES</code>: max retries for data fetch (default <code>5</code>)</li>
+<li><code>FETCH_RETRY_BASE_DELAY_SECONDS</code>: base retry delay (default <code>15</code>)</li>
+<li><code>FETCH_RETRY_MAX_DELAY_SECONDS</code>: max retry delay (default <code>300</code>)</li>
+<li><code>FETCH_RETRY_JITTER_SECONDS</code>: random jitter seconds (default <code>2</code>)</li>
+<li><code>LLM_MAX_RETRIES</code>: max retry attempts for LLM calls (default <code>6</code>)</li>
+<li><code>LLM_RETRY_BASE_DELAY_SECONDS</code>: base delay for LLM retries (default <code>5</code>)</li>
+<li><code>LLM_RETRY_MAX_DELAY_SECONDS</code>: max delay for LLM retries (default <code>120</code>)</li>
+<li><code>LLM_RETRY_JITTER_SECONDS</code>: random jitter for LLM retries (default <code>1</code>)</li>
+<li><code>LLM_PROVIDER</code>: provider switch (<code>openai</code> / <code>gemini</code> / <code>ollama</code>)</li>
+<li><code>REPORT_LANGUAGE</code>: report and Telegram language (<code>zh</code> / <code>en</code>)</li>
+<li><code>PAGES_DEFAULT_LANGUAGE</code>: default landing language for GitHub Pages (<code>zh</code> / <code>en</code>)</li>
+<li><code>GEMINI_MODEL</code>: Gemini model name (default <code>gemini-2.0-flash</code>)</li>
+<li><code>OLLAMA_MODEL</code>: Ollama model name (default <code>qwen2.5:7b</code>)</li>
+<li><code>OLLAMA_BASE_URL</code>: Ollama base URL (default <code>http://127.0.0.1:11434</code>)</li>
+<li><code>MARKET_INDEX_FETCH_ENABLED</code>: enable benchmark index fetch (default <code>true</code>)</li>
+</ul>
+<h2 id="97-llm-reliability-hardening">9.7 LLM Reliability Hardening</h2>
+<p>Prompt and parser now enforce:<br />
+- no fabricated metrics beyond provided inputs,<br />
+- explicit evidence references (<code>N1/N2...</code>) or clear evidence shortage,<br />
+- confidence score (0-100) and reliability notes,<br />
+- concrete, actionable risk points instead of generic statements.</p>
+<h2 id="10-troubleshooting">10. Troubleshooting</h2>
+<h2 id="101-data-fetch-fails-for-all-symbols">10.1 Data fetch fails for all symbols</h2>
+<p>Check:<br />
+- Network access<br />
+- Symbol format<br />
+- Date validity around market trading days</p>
+<h2 id="102-empty-predictions">10.2 Empty predictions</h2>
+<p>Check:<br />
+- Insufficient lookback history<br />
+- Feature columns full of NaN<br />
+- <code>predict_frame.csv</code> in <code>outputs/debug/...</code></p>
+<h2 id="103-telegram-send-errors">10.3 Telegram send errors</h2>
+<p>Check:<br />
+- bot token/chat id correctness<br />
+- bot permissions in target group<br />
+- topic id if sending to a thread</p>
+<h2 id="104-llm-errors">10.4 LLM errors</h2>
+<p>Check:<br />
+- <code>LLM_PROVIDER</code> is one of <code>openai/gemini/ollama</code><br />
+- For <code>openai</code>: verify <code>OPENAI_API_KEY</code> and <code>OPENAI_BASE_URL</code><br />
+- For <code>gemini</code>: verify <code>GEMINI_API_KEY</code> and <code>GEMINI_BASE_URL</code><br />
+- For <code>ollama</code>: verify <code>OLLAMA_BASE_URL</code> reachability and model pull status<br />
+- model availability</p>
+<h2 id="105-news-is-empty">10.5 News is empty</h2>
+<ul>
+<li>Tavily failure automatically falls back to Brave</li>
+<li>If both fail, report still runs with empty news evidence</li>
+</ul>
+<h2 id="11-operational-advice">11. Operational Advice</h2>
+<ul>
+<li>Keep weekly retraining enabled</li>
+<li>Avoid frequent large universe changes</li>
+<li>Run <code>--no-telegram</code> smoke tests before production</li>
+<li>Keep <code>outputs</code> and <code>models</code> artifacts for audit/replay</li>
+<li>Investigate <code>failed_list</code> when <code>status=partial</code></li>
+</ul>
+    </main>
+  </div>
+</body>
+</html>

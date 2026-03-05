@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>中文完整指南</title>
+  <style>
+    :root {
+      --bg: #f4f8ff;
+      --text: #1e2a3a;
+      --muted: #5b6b7f;
+      --card: #ffffff;
+      --line: #dfe7f5;
+      --accent: #175fe6;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; color: var(--text); background: var(--bg); }
+    a { color: var(--accent); text-decoration: none; }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 20px 16px 40px; }
+    .top {
+      background: linear-gradient(135deg, #0b3fae 0%, #1f7cff 100%);
+      color: #fff; border-radius: 14px; padding: 20px;
+      box-shadow: 0 10px 24px rgba(10, 44, 117, 0.28);
+    }
+    .top h1 { margin: 0; font-size: 22px; }
+    .top p { margin: 8px 0 0; opacity: 0.92; }
+    .nav { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .nav a {
+      color: #d9e7ff; border: 1px solid rgba(255,255,255,0.26);
+      border-radius: 999px; padding: 6px 12px; font-size: 13px;
+    }
+    .nav a.active { background: #fff; color: #0b3fae; border-color: #fff; }
+    .nav .lang-switch { margin-left: auto; }
+    .content { margin-top: 18px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+    .muted { color: var(--muted); }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid var(--line); padding: 8px 10px; font-size: 14px; text-align: left; }
+    th { background: #f6f9ff; }
+    code { background: #eef3ff; border-radius: 4px; padding: 1px 4px; }
+    pre code { display: block; overflow-x: auto; padding: 12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="top">
+      <h1>LLM Stock Report · GitHub Pages</h1>
+      <p>详细使用文档 + 每日案例更新</p>
+      <nav class="nav">
+        <a class="" href="../../zh/index.html">首页</a>
+        <a class="active" href="../../zh/docs.html">使用文档</a>
+        <a class="" href="../../zh/cases.html">每日案例</a>
+        <a class="lang-switch" href="../../en/docs/guide.html">English</a>
+      </nav>
+    </section>
+    <main class="content">
+      <h1 id="llm_stock_report">llm_stock_report 完整使用指南（中文）</h1>
+<p>本文档覆盖从 0 到 1 的完整使用流程，包括本地运行、GitHub Actions 自动化、环境变量、数据与模型说明、常见问题排查。</p>
+<p>GitHub Actions 详细配置步骤请看：<br />
+- <a href="github-actions-setup.md">docs/github-actions-setup.md</a></p>
+<h2 id="1">1. 项目定位</h2>
+<p><code>llm_stock_report</code> 是一个研究与信息推送系统，目标是：<br />
+- 每周重训 CN/US/HK 三个市场模型<br />
+- 每日生成下一交易日预测<br />
+- 结合新闻检索与 LLM 输出摘要+详细推理<br />
+- 通过 Telegram 自动发送日报</p>
+<p>注意：项目仅用于研究和复盘，不包含下单执行。</p>
+<h2 id="2">2. 核心流程</h2>
+<p>一次日报执行（<code>run_report</code>）包含以下阶段：<br />
+1. 从 <code>config/universe.yaml</code> 读取股票池<br />
+2. 依据市场抓取历史行情<br />
+   - 优先使用本地缓存，按缺口增量补齐<br />
+   - 抓取失败会按指数退避重试<br />
+3. 计算技术指标与 <code>next_day_return</code><br />
+4. 加载最新模型，若缺失/过期则自动重训<br />
+5. 输出预测分数、排序、Top/Bottom 标签<br />
+6. 新闻检索（Tavily 主，Brave 备）<br />
+7. 调用 OpenAI 生成中文摘要与详细推理<br />
+8. 生成输出文件并发送 Telegram</p>
+<p>模型训练（<code>run_retrain</code>）只负责：数据抓取 -&gt; 特征计算 -&gt; 训练 -&gt; 保存模型。</p>
+<h2 id="3">3. 目录说明</h2>
+<pre><code class="language-text">app/
+  common/      配置、日志、数据结构
+  data/        行情抓取与代码归一化
+  features/    技术指标
+  model/       数据构建、训练、预测、模型注册
+  news/        Tavily/Brave 搜索与兜底
+  llm/         OpenAI 调用与提示词
+  report/      摘要/详情渲染与 Telegram 发送
+  jobs/        CLI 入口（run_report/run_retrain）
+
+config/
+  universe.yaml   股票池（cn/us/hk）
+  report.yaml     运行默认参数
+
+outputs/{market}/{date}/
+  summary.md
+  details.md
+  predictions.csv
+  run_meta.json
+
+models/{market}/{model_version}/
+  model.pkl
+  metadata.json
+</code></pre>
+<h2 id="4">4. 环境准备</h2>
+<h2 id="41-python">4.1 Python 版本</h2>
+<ul>
+<li>推荐 Python 3.11</li>
+</ul>
+<h2 id="42">4.2 安装依赖</h2>
+<pre><code class="language-bash">python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+</code></pre>
+<h2 id="43">4.3 配置环境变量</h2>
+<pre><code class="language-bash">cp .env.example .env
+</code></pre>
+<p>然后在 <code>.env</code> 填写必需项：<br />
+- <code>TAVILY_API_KEY</code><br />
+- <code>BRAVE_API_KEY</code><br />
+- <code>TELEGRAM_BOT_TOKEN</code><br />
+- <code>TELEGRAM_CHAT_ID</code></p>
+<p>LLM 至少配置一组：<br />
+- <code>LLM_PROVIDER=openai</code> + <code>OPENAI_API_KEY</code><br />
+- <code>LLM_PROVIDER=gemini</code> + <code>GEMINI_API_KEY</code><br />
+- <code>LLM_PROVIDER=ollama</code> + <code>OLLAMA_BASE_URL</code> + <code>OLLAMA_MODEL</code></p>
+<p>可选项：<br />
+- <code>TELEGRAM_MESSAGE_THREAD_ID</code><br />
+- <code>OPENAI_BASE_URL</code><br />
+- <code>OPENAI_MODEL</code><br />
+- <code>GEMINI_MODEL</code><br />
+- <code>GEMINI_BASE_URL</code><br />
+- <code>OLLAMA_MODEL</code><br />
+- <code>OLLAMA_BASE_URL</code><br />
+- <code>LLM_PROVIDER</code><br />
+- <code>REPORT_LANGUAGE</code>（<code>zh</code> / <code>en</code>，默认 <code>zh</code>）<br />
+- <code>PAGES_DEFAULT_LANGUAGE</code>（<code>zh</code> / <code>en</code>，默认 <code>zh</code>）<br />
+- <code>MAX_STOCKS_PER_RUN</code><br />
+- <code>DETAIL_MESSAGE_CHAR_LIMIT</code><br />
+- <code>MODEL_EXPIRE_DAYS</code><br />
+- <code>STOCK_LIST_CN</code> / <code>STOCK_LIST_US</code> / <code>STOCK_LIST_HK</code><br />
+- <code>LLM_MAX_RETRIES</code><br />
+- <code>LLM_RETRY_BASE_DELAY_SECONDS</code><br />
+- <code>LLM_RETRY_MAX_DELAY_SECONDS</code><br />
+- <code>LLM_RETRY_JITTER_SECONDS</code></p>
+<h2 id="5">5. 股票池配置</h2>
+<p>编辑 <code>config/universe.yaml</code>：</p>
+<pre><code class="language-yaml">cn:
+  - SH600519
+  - SZ000001
+  - SZ300750
+us:
+  - AAPL
+  - MSFT
+  - NVDA
+hk:
+  - HK00700
+  - HK03690
+  - HK09988
+</code></pre>
+<p>说明：<br />
+- CN 支持 <code>SHxxxxxx</code> / <code>SZxxxxxx</code> 或 6 位数字（会自动归一化）<br />
+- US 用标准 ticker<br />
+- HK 支持 <code>HK00700</code>、<code>00700</code>、<code>0700</code>、<code>700</code>（会归一化到 <code>HK00700</code>）<br />
+- 单次运行最多处理 <code>MAX_STOCKS_PER_RUN</code>（默认 30）</p>
+<h2 id="6">6. 本地运行</h2>
+<h2 id="61">6.1 手动重训</h2>
+<pre><code class="language-bash">python -m app.jobs.run_retrain --market cn --date 2026-03-04
+python -m app.jobs.run_retrain --market us --date 2026-03-04
+python -m app.jobs.run_retrain --market hk --date 2026-03-04
+</code></pre>
+<p>说明：训练前会先检查本地历史缓存（<code>qlib_data/history/</code>），只拉取缺失区间并自动淘汰超出保留窗口的旧数据。</p>
+<h2 id="62">6.2 生成日报</h2>
+<pre><code class="language-bash">python -m app.jobs.run_report --market cn --date 2026-03-04
+python -m app.jobs.run_report --market us --date 2026-03-04
+python -m app.jobs.run_report --market hk --date 2026-03-04
+</code></pre>
+<p>如果只想生成本地文件，不发送 Telegram：</p>
+<pre><code class="language-bash">python -m app.jobs.run_report --market cn --date 2026-03-04 --no-telegram
+</code></pre>
+<h2 id="7">7. 输出文件说明</h2>
+<p><code>predictions.csv</code> 固定列：<br />
+- <code>market</code><br />
+- <code>symbol</code><br />
+- <code>asof_date</code><br />
+- <code>score</code><br />
+- <code>rank</code><br />
+- <code>side</code><br />
+- <code>pred_return</code><br />
+- <code>model_version</code><br />
+- <code>data_window_start</code><br />
+- <code>data_window_end</code></p>
+<p><code>run_meta.json</code> 固定字段：<br />
+- <code>run_id</code><br />
+- <code>market</code><br />
+- <code>status</code><br />
+- <code>total_symbols</code><br />
+- <code>success_symbols</code><br />
+- <code>failed_symbols</code><br />
+- <code>failed_list</code><br />
+- <code>model_version</code><br />
+- <code>llm_model</code><br />
+- <code>search_provider_primary</code><br />
+- <code>search_provider_fallback</code><br />
+- <code>start_time</code><br />
+- <code>end_time</code></p>
+<h2 id="8-telegram">8. Telegram 推送协议</h2>
+<p>推送顺序固定：<br />
+1. 摘要消息（标题如 <code>[CN] 2026-03-04 日报摘要</code>）<br />
+2. 逐股票详细消息（标题如 <code>[CN][SH600519][1/2]</code>）<br />
+3. 大盘复盘消息（标题如 <code>[CN][MARKET][1/1]</code>）</p>
+<p>细节：<br />
+- 单条消息默认最多 3500 字符<br />
+- 超长自动切段并标注 <code>(i/n)</code><br />
+- Markdown 会做转义，降低格式报错概率</p>
+<h2 id="9-github-actions">9. GitHub Actions 自动化</h2>
+<h2 id="91-workflow">9.1 Workflow 文件</h2>
+<ul>
+<li><code>.github/workflows/daily_cn.yml</code></li>
+<li><code>.github/workflows/daily_hk.yml</code></li>
+<li><code>.github/workflows/daily_us.yml</code></li>
+<li><code>.github/workflows/weekly_retrain.yml</code></li>
+<li><code>.github/workflows/deploy_pages.yml</code></li>
+</ul>
+<h2 id="92-utc">9.2 定时规则（UTC）</h2>
+<ul>
+<li><code>daily_cn.yml</code>: <code>0 8 * * 1-5</code>（北京时间工作日 16:00）</li>
+<li><code>daily_hk.yml</code>: <code>30 9 * * 1-5</code>（北京时间工作日 17:30）</li>
+<li><code>daily_us.yml</code>: <code>30 23 * * 1-5</code>（北京时间次日 07:30）</li>
+<li>以上为自动定时运行：CN/HK 为北京时间工作日；US 为北京时间周二到周六早晨（覆盖美股前一交易日）</li>
+<li><code>weekly_retrain.yml</code>: 周日定时</li>
+<li>使用 GitHub Hosted Runner 时，默认无法连到你本机 Ollama；Ollama 建议本地跑或用 self-hosted runner</li>
+<li><code>deploy_pages.yml</code>: 在 <code>docs/**</code> 或 <code>pages_data/**</code> 变更后自动发布 GitHub Pages（文档 + 每日案例）</li>
+</ul>
+<h2 id="921-github-pages">9.2.1 GitHub Pages 说明</h2>
+<ul>
+<li>每次日报完成后会自动执行 <code>python -m app.jobs.export_case</code>，把当日结果写入 <code>pages_data/cases/**</code>。</li>
+<li><code>deploy_pages.yml</code> 会把文档与案例渲染为静态站点并发布到 Pages。</li>
+<li>首次使用请在仓库 <code>Settings -&gt; Pages</code> 将 <code>Source</code> 设置为 <code>GitHub Actions</code>。</li>
+</ul>
+<h2 id="93-github-secrets">9.3 GitHub Secrets</h2>
+<p>必需：<br />
+- <code>TAVILY_API_KEY</code><br />
+- <code>BRAVE_API_KEY</code><br />
+- <code>TELEGRAM_BOT_TOKEN</code><br />
+- <code>TELEGRAM_CHAT_ID</code></p>
+<p>可选：<br />
+- <code>OPENAI_API_KEY</code>（<code>LLM_PROVIDER=openai</code> 时必需）<br />
+- <code>GEMINI_API_KEY</code>（<code>LLM_PROVIDER=gemini</code> 时必需）<br />
+- <code>OLLAMA_API_KEY</code>（仅远程 Ollama 需要）<br />
+- <code>TELEGRAM_MESSAGE_THREAD_ID</code></p>
+<h2 id="94-github-variables">9.4 GitHub Variables（可选）</h2>
+<ul>
+<li><code>MAX_STOCKS_PER_RUN</code>（默认 30）</li>
+<li><code>DETAIL_MESSAGE_CHAR_LIMIT</code>（默认 3500）</li>
+<li><code>MODEL_EXPIRE_DAYS</code>（默认 8）</li>
+<li><code>MARKET_INDEX_FETCH_ENABLED</code>（默认 true，是否拉取指数基准）</li>
+<li><code>STOCK_LIST_CN</code> / <code>STOCK_LIST_US</code> / <code>STOCK_LIST_HK</code>（环境变量覆盖股票池）</li>
+<li><code>OPENAI_BASE_URL</code></li>
+<li><code>OPENAI_MODEL</code></li>
+<li><code>LLM_PROVIDER</code>（<code>openai</code> / <code>gemini</code> / <code>ollama</code>）</li>
+<li><code>REPORT_LANGUAGE</code>（<code>zh</code> / <code>en</code>，默认 <code>zh</code>）</li>
+<li><code>PAGES_DEFAULT_LANGUAGE</code>（<code>zh</code> / <code>en</code>，默认 <code>zh</code>）</li>
+<li><code>GEMINI_MODEL</code></li>
+<li><code>GEMINI_BASE_URL</code></li>
+<li><code>OLLAMA_MODEL</code></li>
+<li><code>OLLAMA_BASE_URL</code></li>
+<li><code>LLM_MAX_RETRIES</code>（默认 6）</li>
+<li><code>LLM_RETRY_BASE_DELAY_SECONDS</code>（默认 5）</li>
+<li><code>LLM_RETRY_MAX_DELAY_SECONDS</code>（默认 120）</li>
+<li><code>LLM_RETRY_JITTER_SECONDS</code>（默认 1）</li>
+<li><code>MARKET_INDEX_FETCH_ENABLED</code>（默认 true）</li>
+</ul>
+<h2 id="95-artifact">9.5 Artifact</h2>
+<p>每次运行上传：<br />
+- <code>outputs/**</code><br />
+- <code>models/**</code><br />
+保留 14 天。</p>
+<h2 id="96">9.6 训练窗口与重试参数（强烈建议了解）</h2>
+<ul>
+<li><code>TRAINING_WINDOW_DAYS</code>：训练主窗口（默认 730 天）</li>
+<li><code>FEATURE_WARMUP_DAYS</code>：特征预热窗口（默认 60 天）</li>
+<li><code>HISTORY_PRUNE_BUFFER_DAYS</code>：历史缓存额外保留天数（默认 60 天）</li>
+<li><code>INCREMENTAL_OVERLAP_DAYS</code>：增量拉取时与已有数据重叠天数（默认 7 天）</li>
+<li><code>FETCH_MAX_RETRIES</code>：抓取最大重试次数（默认 5）</li>
+<li><code>FETCH_RETRY_BASE_DELAY_SECONDS</code>：重试基础间隔秒数（默认 15）</li>
+<li><code>FETCH_RETRY_MAX_DELAY_SECONDS</code>：重试最大间隔秒数（默认 300）</li>
+<li><code>FETCH_RETRY_JITTER_SECONDS</code>：重试随机抖动秒数（默认 2）</li>
+<li><code>LLM_MAX_RETRIES</code>：LLM 请求最大重试次数（默认 6）</li>
+<li><code>LLM_RETRY_BASE_DELAY_SECONDS</code>：LLM 重试基础间隔秒数（默认 5）</li>
+<li><code>LLM_RETRY_MAX_DELAY_SECONDS</code>：LLM 重试最大间隔秒数（默认 120）</li>
+<li><code>LLM_RETRY_JITTER_SECONDS</code>：LLM 重试随机抖动秒数（默认 1）</li>
+<li><code>LLM_PROVIDER</code>：LLM 供应商（<code>openai</code> / <code>gemini</code> / <code>ollama</code>）</li>
+<li><code>REPORT_LANGUAGE</code>：报告与 Telegram 推送语言（<code>zh</code> / <code>en</code>）</li>
+<li><code>PAGES_DEFAULT_LANGUAGE</code>：GitHub Pages 默认入口语言（<code>zh</code> / <code>en</code>）</li>
+<li><code>GEMINI_MODEL</code>：Gemini 模型名（默认 <code>gemini-2.0-flash</code>）</li>
+<li><code>OLLAMA_MODEL</code>：Ollama 模型名（默认 <code>qwen2.5:7b</code>）</li>
+<li><code>OLLAMA_BASE_URL</code>：Ollama 地址（默认 <code>http://127.0.0.1:11434</code>）</li>
+<li><code>MARKET_INDEX_FETCH_ENABLED</code>：是否抓取大盘指数（默认 true）</li>
+</ul>
+<h2 id="97-llm">9.7 LLM 输出可靠性增强</h2>
+<p>提示词与解析层已加入以下约束：<br />
+- 必须基于输入数据，不得编造未给出的数值<br />
+- 必须输出证据引用编号（<code>N1/N2...</code>）或明确“证据不足”<br />
+- 必须输出置信度（0-100）与可靠性说明<br />
+- 风险点必须具体且可执行（避免泛化结论）</p>
+<h2 id="10">10. 常见问题排查</h2>
+<h2 id="101">10.1 全部股票抓取失败</h2>
+<p>检查：<br />
+- 网络是否可访问对应数据源<br />
+- 股票代码格式是否正确<br />
+- 目标日期是否为交易日附近</p>
+<h2 id="102">10.2 预测为空</h2>
+<p>检查：<br />
+- 历史窗口是否过短（至少覆盖若干周）<br />
+- 特征列是否大量缺失<br />
+- <code>predict_frame.csv</code>（<code>outputs/debug/...</code>）是否有行</p>
+<h2 id="103-telegram">10.3 Telegram 发送失败</h2>
+<p>检查：<br />
+- <code>TELEGRAM_BOT_TOKEN</code> / <code>TELEGRAM_CHAT_ID</code> 是否正确<br />
+- bot 是否在群里且有发言权限<br />
+- 是否启用了 topic，若启用要配置 <code>TELEGRAM_MESSAGE_THREAD_ID</code></p>
+<h2 id="104-llm">10.4 LLM 调用失败</h2>
+<p>检查：<br />
+- <code>LLM_PROVIDER</code> 是否配置为 <code>openai/gemini/ollama</code><br />
+- 若 <code>openai</code>：<code>OPENAI_API_KEY</code> / <code>OPENAI_BASE_URL</code> 是否正确<br />
+- 若 <code>gemini</code>：<code>GEMINI_API_KEY</code> / <code>GEMINI_BASE_URL</code> 是否正确<br />
+- 若 <code>ollama</code>：<code>OLLAMA_BASE_URL</code> 可否访问、<code>OLLAMA_MODEL</code> 是否已拉取<br />
+- 模型名是否可用</p>
+<h2 id="105">10.5 新闻检索为空</h2>
+<ul>
+<li>Tavily 配额或网络异常时会自动切 Brave</li>
+<li>两者都失败时会继续生成报告，但新闻证据为空</li>
+</ul>
+<h2 id="11">11. 生产建议</h2>
+<ul>
+<li>每周至少跑一次重训</li>
+<li>保持股票池稳定，不要频繁大改</li>
+<li>先在 <code>--no-telegram</code> 模式做冒烟测试</li>
+<li>保留 <code>outputs</code> 和 <code>models</code> 的历史用于回溯</li>
+<li>对 <code>status=partial</code> 的报告重点检查 <code>failed_list</code></li>
+</ul>
+    </main>
+  </div>
+</body>
+</html>

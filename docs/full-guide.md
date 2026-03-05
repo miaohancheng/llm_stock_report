@@ -95,6 +95,7 @@ LLM 至少配置一组：
 - `OLLAMA_BASE_URL`
 - `LLM_PROVIDER`
 - `REPORT_LANGUAGE`（`zh` / `en`，默认 `zh`）
+- `PAGES_DEFAULT_LANGUAGE`（`zh` / `en`，默认 `zh`）
 - `MAX_STOCKS_PER_RUN`
 - `DETAIL_MESSAGE_CHAR_LIMIT`
 - `MODEL_EXPIRE_DAYS`
@@ -238,6 +239,7 @@ python -m app.jobs.run_report --market cn --date 2026-03-04 --no-telegram
 - `OPENAI_MODEL`
 - `LLM_PROVIDER`（`openai` / `gemini` / `ollama`）
 - `REPORT_LANGUAGE`（`zh` / `en`，默认 `zh`）
+- `PAGES_DEFAULT_LANGUAGE`（`zh` / `en`，默认 `zh`）
 - `GEMINI_MODEL`
 - `GEMINI_BASE_URL`
 - `OLLAMA_MODEL`
@@ -270,6 +272,7 @@ python -m app.jobs.run_report --market cn --date 2026-03-04 --no-telegram
 - `LLM_RETRY_JITTER_SECONDS`：LLM 重试随机抖动秒数（默认 1）
 - `LLM_PROVIDER`：LLM 供应商（`openai` / `gemini` / `ollama`）
 - `REPORT_LANGUAGE`：报告与 Telegram 推送语言（`zh` / `en`）
+- `PAGES_DEFAULT_LANGUAGE`：GitHub Pages 默认入口语言（`zh` / `en`）
 - `GEMINI_MODEL`：Gemini 模型名（默认 `gemini-2.0-flash`）
 - `OLLAMA_MODEL`：Ollama 模型名（默认 `qwen2.5:7b`）
 - `OLLAMA_BASE_URL`：Ollama 地址（默认 `http://127.0.0.1:11434`）

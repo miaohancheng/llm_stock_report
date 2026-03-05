@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Daily Cases</title>
+  <style>
+    :root {
+      --bg: #f4f8ff;
+      --text: #1e2a3a;
+      --muted: #5b6b7f;
+      --card: #ffffff;
+      --line: #dfe7f5;
+      --accent: #175fe6;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; color: var(--text); background: var(--bg); }
+    a { color: var(--accent); text-decoration: none; }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 20px 16px 40px; }
+    .top {
+      background: linear-gradient(135deg, #0b3fae 0%, #1f7cff 100%);
+      color: #fff; border-radius: 14px; padding: 20px;
+      box-shadow: 0 10px 24px rgba(10, 44, 117, 0.28);
+    }
+    .top h1 { margin: 0; font-size: 22px; }
+    .top p { margin: 8px 0 0; opacity: 0.92; }
+    .nav { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .nav a {
+      color: #d9e7ff; border: 1px solid rgba(255,255,255,0.26);
+      border-radius: 999px; padding: 6px 12px; font-size: 13px;
+    }
+    .nav a.active { background: #fff; color: #0b3fae; border-color: #fff; }
+    .nav .lang-switch { margin-left: auto; }
+    .content { margin-top: 18px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+    .muted { color: var(--muted); }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid var(--line); padding: 8px 10px; font-size: 14px; text-align: left; }
+    th { background: #f6f9ff; }
+    code { background: #eef3ff; border-radius: 4px; padding: 1px 4px; }
+    pre code { display: block; overflow-x: auto; padding: 12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="top">
+      <h1>LLM Stock Report · GitHub Pages</h1>
+      <p>Detailed docs + daily case updates</p>
+      <nav class="nav">
+        <a class="" href="../en/index.html">Home</a>
+        <a class="" href="../en/docs.html">Docs</a>
+        <a class="active" href="../en/cases.html">Daily Cases</a>
+        <a class="lang-switch" href="../zh/cases.html">中文</a>
+      </nav>
+    </section>
+    <main class="content">
+      <h2>Daily Case Updates</h2>
+<p class='muted'>Newest first. Data is generated from daily report outputs.</p>
+<table>
+<thead><tr><th>Date</th><th>Market</th><th>Status</th><th>Sample</th><th>Summary</th><th>Detail</th></tr></thead>
+<tbody>
+</tbody>
+</table>
+<p class='muted'>No case data yet. Run any daily workflow first.</p>
+    </main>
+  </div>
+</body>
+</html>

@@ -86,6 +86,7 @@ LLM 至少配置一组：
 ### 关键可选参数（推荐配置）
 - `LLM_PROVIDER`（`openai` / `gemini` / `ollama`）
 - `REPORT_LANGUAGE`（`zh` / `en`，控制 Telegram 推送与报告文本语言）
+- `PAGES_DEFAULT_LANGUAGE`（`zh` / `en`，控制 GitHub Pages 默认入口语言）
 - `STOCK_LIST_CN` / `STOCK_LIST_US` / `STOCK_LIST_HK`（环境变量覆盖股票池）
 - `TRAINING_WINDOW_DAYS`（训练窗口天数，默认 730）
 - `FEATURE_WARMUP_DAYS`（特征预热天数，默认 60）
@@ -118,6 +119,9 @@ LLM 至少配置一组：
   - `Build and deployment` 的 `Source` 选 `GitHub Actions`
   - 手动触发一次 `Deploy GitHub Pages` workflow 或等待下次自动触发
 - 发布后地址通常为：`https://<owner>.github.io/<repo>/`
+- 语言页结构：
+  - `.../<repo>/zh/`（中文页面，默认打开中文文档入口）
+  - `.../<repo>/en/`（英文页面，默认打开英文文档入口）
 
 ### 输出文件
 - `summary.md`
@@ -186,6 +190,7 @@ Configure at least one LLM path:
 ### Important optional knobs
 - `LLM_PROVIDER` (`openai` / `gemini` / `ollama`)
 - `REPORT_LANGUAGE` (`zh` / `en`, controls Telegram/report language)
+- `PAGES_DEFAULT_LANGUAGE` (`zh` / `en`, controls default landing language for GitHub Pages)
 - `STOCK_LIST_CN` / `STOCK_LIST_US` / `STOCK_LIST_HK` (env override for universe)
 - `TRAINING_WINDOW_DAYS` (default `730`)
 - `FEATURE_WARMUP_DAYS` (default `60`)
@@ -218,6 +223,9 @@ Configure at least one LLM path:
   - Set `Build and deployment` -> `Source` to `GitHub Actions`
   - Trigger `Deploy GitHub Pages` once manually, or wait for auto trigger
 - Published URL is typically: `https://<owner>.github.io/<repo>/`
+- Language routes:
+  - `.../<repo>/zh/` (Chinese pages with Chinese docs as default)
+  - `.../<repo>/en/` (English pages with English docs as default)
 
 ### Outputs
 - `summary.md`

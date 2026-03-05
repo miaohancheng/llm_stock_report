@@ -22,6 +22,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      PAGES_DEFAULT_LANGUAGE: ${{ vars.PAGES_DEFAULT_LANGUAGE || vars.REPORT_LANGUAGE || 'zh' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,7 +41,7 @@ jobs:
 
       - name: Build static site
         run: |
-          python scripts/build_pages.py --output site_dist
+          python scripts/build_pages.py --output site_dist --default-language "$PAGES_DEFAULT_LANGUAGE"
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

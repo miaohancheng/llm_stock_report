@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>GitHub Actions Setup (EN)</title>
+  <style>
+    :root {
+      --bg: #f4f8ff;
+      --text: #1e2a3a;
+      --muted: #5b6b7f;
+      --card: #ffffff;
+      --line: #dfe7f5;
+      --accent: #175fe6;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; color: var(--text); background: var(--bg); }
+    a { color: var(--accent); text-decoration: none; }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 20px 16px 40px; }
+    .top {
+      background: linear-gradient(135deg, #0b3fae 0%, #1f7cff 100%);
+      color: #fff; border-radius: 14px; padding: 20px;
+      box-shadow: 0 10px 24px rgba(10, 44, 117, 0.28);
+    }
+    .top h1 { margin: 0; font-size: 22px; }
+    .top p { margin: 8px 0 0; opacity: 0.92; }
+    .nav { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .nav a {
+      color: #d9e7ff; border: 1px solid rgba(255,255,255,0.26);
+      border-radius: 999px; padding: 6px 12px; font-size: 13px;
+    }
+    .nav a.active { background: #fff; color: #0b3fae; border-color: #fff; }
+    .nav .lang-switch { margin-left: auto; }
+    .content { margin-top: 18px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+    .muted { color: var(--muted); }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid var(--line); padding: 8px 10px; font-size: 14px; text-align: left; }
+    th { background: #f6f9ff; }
+    code { background: #eef3ff; border-radius: 4px; padding: 1px 4px; }
+    pre code { display: block; overflow-x: auto; padding: 12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="top">
+      <h1>LLM Stock Report · GitHub Pages</h1>
+      <p>Detailed docs + daily case updates</p>
+      <nav class="nav">
+        <a class="" href="../../en/index.html">Home</a>
+        <a class="active" href="../../en/docs.html">Docs</a>
+        <a class="" href="../../en/cases.html">Daily Cases</a>
+        <a class="lang-switch" href="../../zh/docs/actions.html">中文</a>
+      </nav>
+    </section>
+    <main class="content">
+      <h1 id="github-actions-setup-guide-english">GitHub Actions Setup Guide (English)</h1>
+<p>This document explains how to configure Actions, Secrets (keys), and Variables for this repository, then run a first successful job.</p>
+<h2 id="1-prerequisites">1. Prerequisites</h2>
+<ul>
+<li>The repository is pushed to GitHub.</li>
+<li>Workflow files exist:</li>
+<li><code>.github/workflows/daily_cn.yml</code></li>
+<li><code>.github/workflows/daily_hk.yml</code></li>
+<li><code>.github/workflows/daily_us.yml</code></li>
+<li><code>.github/workflows/weekly_retrain.yml</code></li>
+<li><code>.github/workflows/deploy_pages.yml</code></li>
+</ul>
+<h2 id="2-enable-actions">2. Enable Actions</h2>
+<ol>
+<li>Open your repository page.</li>
+<li>Click <code>Actions</code> tab.</li>
+<li>If disabled, click the enable button.</li>
+</ol>
+<h2 id="3-configure-secrets-sensitive-keys">3. Configure Secrets (sensitive keys)</h2>
+<p>Path: <code>Settings</code> -&gt; <code>Secrets and variables</code> -&gt; <code>Actions</code> -&gt; <code>Secrets</code> -&gt; <code>New repository secret</code></p>
+<p>Required Secrets:<br />
+1. <code>TAVILY_API_KEY</code><br />
+2. <code>BRAVE_API_KEY</code><br />
+3. <code>TELEGRAM_BOT_TOKEN</code><br />
+4. <code>TELEGRAM_CHAT_ID</code></p>
+<p>Optional:<br />
+1. <code>OPENAI_API_KEY</code> (required when <code>LLM_PROVIDER=openai</code>)<br />
+2. <code>GEMINI_API_KEY</code> (required when <code>LLM_PROVIDER=gemini</code>)<br />
+3. <code>OLLAMA_API_KEY</code> (only for protected remote Ollama)<br />
+4. <code>TELEGRAM_MESSAGE_THREAD_ID</code></p>
+<p>Notes:<br />
+- Keep API keys and tokens in Secrets only.<br />
+- Secret values are masked in logs.</p>
+<h2 id="4-configure-variables-non-sensitive-runtime-knobs">4. Configure Variables (non-sensitive runtime knobs)</h2>
+<p>Path: <code>Settings</code> -&gt; <code>Secrets and variables</code> -&gt; <code>Actions</code> -&gt; <code>Variables</code> -&gt; <code>New repository variable</code></p>
+<p>Recommended Variables:</p>
+<pre><code class="language-text">OPENAI_MODEL=gpt-4o-mini
+OPENAI_BASE_URL=https://api.openai.com/v1
+LLM_PROVIDER=openai
+REPORT_LANGUAGE=zh
+PAGES_DEFAULT_LANGUAGE=zh
+GEMINI_MODEL=gemini-2.0-flash
+GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+OLLAMA_MODEL=qwen2.5:7b
+
+MAX_STOCKS_PER_RUN=30
+DETAIL_MESSAGE_CHAR_LIMIT=3500
+MODEL_EXPIRE_DAYS=8
+MARKET_INDEX_FETCH_ENABLED=true
+
+TRAINING_WINDOW_DAYS=730
+FEATURE_WARMUP_DAYS=60
+HISTORY_PRUNE_BUFFER_DAYS=60
+INCREMENTAL_OVERLAP_DAYS=7
+
+FETCH_MAX_RETRIES=5
+FETCH_RETRY_BASE_DELAY_SECONDS=15
+FETCH_RETRY_MAX_DELAY_SECONDS=300
+FETCH_RETRY_JITTER_SECONDS=2
+LLM_MAX_RETRIES=6
+LLM_RETRY_BASE_DELAY_SECONDS=5
+LLM_RETRY_MAX_DELAY_SECONDS=120
+LLM_RETRY_JITTER_SECONDS=1
+
+STOCK_LIST_CN=SH600519,SZ000001,SZ300750
+STOCK_LIST_US=AAPL,MSFT,NVDA
+STOCK_LIST_HK=HK00700,HK03690,HK09988
+</code></pre>
+<p>Notes:<br />
+- <code>STOCK_LIST_CN/US/HK</code> already override <code>config/universe.yaml</code> in workflows.<br />
+- <code>REPORT_LANGUAGE</code> supports <code>zh</code> or <code>en</code> for Telegram/report output language.<br />
+- <code>PAGES_DEFAULT_LANGUAGE</code> supports <code>zh</code> or <code>en</code> for default Pages entry route (<code>/zh/</code> or <code>/en/</code>).<br />
+- Use comma-separated values, no line breaks.<br />
+- GitHub-hosted runners usually cannot reach your local <code>127.0.0.1:11434</code>; use Ollama on self-hosted runners if needed.</p>
+<h2 id="5-workflow-to-env-mapping">5. Workflow-to-env mapping</h2>
+<p>These workflows already inject the variables/secrets into runtime env:<br />
+- <code>daily_cn.yml</code><br />
+- <code>daily_hk.yml</code><br />
+- <code>daily_us.yml</code><br />
+- <code>weekly_retrain.yml</code></p>
+<p>So application code can read them via <code>os.getenv(...)</code>.</p>
+<h2 id="51-trading-day-schedule-confirmation">5.1 Trading-day schedule confirmation</h2>
+<p>Current schedules (UTC):<br />
+- <code>daily_cn.yml</code>: <code>0 8 * * 1-5</code> (16:00 Asia/Shanghai weekdays)<br />
+- <code>daily_hk.yml</code>: <code>30 9 * * 1-5</code> (17:30 Asia/Shanghai weekdays)<br />
+- <code>daily_us.yml</code>: <code>30 23 * * 1-5</code> (07:30 Asia/Shanghai Tue-Sat; covers prior US trading day)</p>
+<p>Notes:<br />
+- These are automatic triggers; no manual run is required.<br />
+- CN and HK runs are staggered by 1.5 hours to reduce contention.</p>
+<h2 id="52-github-pages-deployment-and-auto-case-updates">5.2 GitHub Pages deployment and auto case updates</h2>
+<p>The repository now includes two connected pieces:<br />
+1. <code>daily_cn/hk/us.yml</code> runs <code>python -m app.jobs.export_case</code> after each report, then commits <code>pages_data/cases/**</code> back to the repo.<br />
+2. <code>deploy_pages.yml</code> auto-builds and publishes the Pages site when <code>docs/**</code> or <code>pages_data/**</code> changes.</p>
+<p>First-time enablement:<br />
+1. Go to <code>Settings</code> -&gt; <code>Pages</code>.<br />
+2. Under <code>Build and deployment</code>, set <code>Source</code> to <code>GitHub Actions</code>.<br />
+3. Trigger <code>Deploy GitHub Pages</code> manually once (or wait for the next daily run push).</p>
+<p>Published site contains:<br />
+- detailed usage docs (ZH/EN)<br />
+- daily case updates (newest first)</p>
+<h2 id="6-first-manual-run-recommended">6. First manual run (recommended)</h2>
+<ol>
+<li>Open <code>Actions</code> tab.</li>
+<li>Choose <code>Daily CN Report</code> (or HK/US).</li>
+<li>Click <code>Run workflow</code>.</li>
+<li>Leave <code>date</code> empty (default to current day in Asia/Shanghai) or set <code>2026-03-04</code>.</li>
+<li>Inspect logs and artifacts.</li>
+</ol>
+<h2 id="7-validation-checklist">7. Validation checklist</h2>
+<p>After one successful run:<br />
+1. Logs include <code>Outputs written:</code>.<br />
+2. Artifacts contain:<br />
+   - <code>outputs/**</code><br />
+   - <code>models/**</code><br />
+3. Telegram receives:<br />
+   - one summary message<br />
+   - per-symbol chunked detail messages</p>
+<h2 id="8-common-issues">8. Common issues</h2>
+<h2 id="81-variable-exists-but-not-applied">8.1 Variable exists but not applied</h2>
+<p>Check:<br />
+- exact variable name (case-sensitive),<br />
+- variable configured in the same repository,<br />
+- workflow has corresponding <code>env:</code> mapping (already included in this project).</p>
+<h2 id="82-telegram-messages-not-delivered">8.2 Telegram messages not delivered</h2>
+<p>Check:<br />
+- <code>TELEGRAM_BOT_TOKEN</code>,<br />
+- <code>TELEGRAM_CHAT_ID</code>,<br />
+- bot membership and posting permission,<br />
+- <code>TELEGRAM_MESSAGE_THREAD_ID</code> for forum topics.</p>
+<h2 id="83-data-fetch-still-fails-occasionally">8.3 Data fetch still fails occasionally</h2>
+<p>Try higher values:<br />
+- <code>FETCH_MAX_RETRIES</code> (e.g. 6-8)<br />
+- <code>FETCH_RETRY_BASE_DELAY_SECONDS</code> (e.g. 20)<br />
+- <code>FETCH_RETRY_MAX_DELAY_SECONDS</code> (e.g. 360)</p>
+<h2 id="84-universe-config-conflict">8.4 Universe config conflict</h2>
+<p>Priority:<br />
+1. <code>STOCK_LIST_CN/US/HK</code> (Variables)<br />
+2. <code>STOCK_LIST</code> (legacy CN only)<br />
+3. <code>config/universe.yaml</code></p>
+<h2 id="85-llm-429-rate-limit-skips">8.5 LLM 429 rate-limit skips</h2>
+<p>Try higher values:<br />
+- <code>LLM_MAX_RETRIES</code> (e.g. 8-10)<br />
+- <code>LLM_RETRY_BASE_DELAY_SECONDS</code> (e.g. 8-15)<br />
+- <code>LLM_RETRY_MAX_DELAY_SECONDS</code> (e.g. 180-300)</p>
+<p>Notes:<br />
+- The code retries on <code>429/408/409/5xx</code> and transient network failures.<br />
+- A symbol is skipped only after retry budget is exhausted.</p>
+<h2 id="86-switch-llm-provider">8.6 Switch LLM provider</h2>
+<p>Examples:<br />
+- OpenAI: <code>LLM_PROVIDER=openai</code> + <code>OPENAI_API_KEY</code><br />
+- Gemini: <code>LLM_PROVIDER=gemini</code> + <code>GEMINI_API_KEY</code><br />
+- Ollama: <code>LLM_PROVIDER=ollama</code> + <code>OLLAMA_BASE_URL</code> + <code>OLLAMA_MODEL</code></p>
+<h2 id="9-recommended-rollout">9. Recommended rollout</h2>
+<ol>
+<li>Configure and validate CN first.</li>
+<li>Then enable US and HK.</li>
+<li>Observe scheduled stability for at least 3 trading days.</li>
+</ol>
+    </main>
+  </div>
+</body>
+</html>

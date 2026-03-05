@@ -96,6 +96,7 @@ Optional:
 - `OLLAMA_BASE_URL`
 - `LLM_PROVIDER`
 - `REPORT_LANGUAGE` (`zh` / `en`, default `zh`)
+- `PAGES_DEFAULT_LANGUAGE` (`zh` / `en`, default `zh`)
 - `MAX_STOCKS_PER_RUN`
 - `DETAIL_MESSAGE_CHAR_LIMIT`
 - `MODEL_EXPIRE_DAYS`
@@ -239,6 +240,7 @@ Optional:
 - `OPENAI_MODEL`
 - `LLM_PROVIDER` (`openai` / `gemini` / `ollama`)
 - `REPORT_LANGUAGE` (`zh` / `en`, default `zh`)
+- `PAGES_DEFAULT_LANGUAGE` (`zh` / `en`, default `zh`)
 - `GEMINI_MODEL`
 - `GEMINI_BASE_URL`
 - `OLLAMA_MODEL`
@@ -271,6 +273,7 @@ Retention: 14 days.
 - `LLM_RETRY_JITTER_SECONDS`: random jitter for LLM retries (default `1`)
 - `LLM_PROVIDER`: provider switch (`openai` / `gemini` / `ollama`)
 - `REPORT_LANGUAGE`: report and Telegram language (`zh` / `en`)
+- `PAGES_DEFAULT_LANGUAGE`: default landing language for GitHub Pages (`zh` / `en`)
 - `GEMINI_MODEL`: Gemini model name (default `gemini-2.0-flash`)
 - `OLLAMA_MODEL`: Ollama model name (default `qwen2.5:7b`)
 - `OLLAMA_BASE_URL`: Ollama base URL (default `http://127.0.0.1:11434`)
