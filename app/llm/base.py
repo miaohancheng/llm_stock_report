@@ -57,6 +57,35 @@ def _is_retryable_status(status_code: int) -> bool:
     return status_code == 429 or status_code in {408, 409} or 500 <= status_code <= 599
 
 
+def _is_retryable_400_text(body_text: str) -> bool:
+    text = (body_text or "").strip().lower()
+    if not text:
+        return False
+    retryable_markers = (
+        "timeout",
+        "timed out",
+        "rate limit",
+        "rate-limited",
+        "temporarily rate-limited",
+        "upstream connect error",
+        "disconnect/reset before headers",
+        "server overloaded",
+        "overflow",
+        "please retry",
+        "retry shortly",
+        "try again",
+    )
+    return any(marker in text for marker in retryable_markers)
+
+
+def _is_retryable_response(status_code: int, body_text: str) -> bool:
+    if _is_retryable_status(status_code):
+        return True
+    if status_code == 400 and _is_retryable_400_text(body_text):
+        return True
+    return False
+
+
 def _parse_retry_after_seconds(raw_value: str | None) -> float | None:
     if raw_value is None:
         return None
@@ -102,7 +131,8 @@ def post_json_with_retry(
             continue
 
         if response.status_code >= 400:
-            retryable = _is_retryable_status(response.status_code)
+            response_text = response.text[:3000]
+            retryable = _is_retryable_response(response.status_code, response_text)
             if attempt < retry.max_retries and retryable:
                 retry_after = _parse_retry_after_seconds(response.headers.get("Retry-After"))
                 if retry_after is not None:
@@ -116,7 +146,7 @@ def post_json_with_retry(
                     attempt,
                     retry.max_retries,
                     delay,
-                    response.text[:200],
+                    response_text[:200],
                 )
                 time.sleep(delay)
                 continue
@@ -124,9 +154,9 @@ def post_json_with_retry(
             if retryable:
                 raise LLMError(
                     f"{provider_name} request failed after {retry.max_retries} attempts: "
-                    f"HTTP {response.status_code} {response.text[:300]}"
+                    f"HTTP {response.status_code} {response_text[:300]}"
                 )
-            raise LLMError(f"{provider_name} request failed: HTTP {response.status_code} {response.text[:300]}")
+            raise LLMError(f"{provider_name} request failed: HTTP {response.status_code} {response_text[:300]}")
 
         return response
 

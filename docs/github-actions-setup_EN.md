@@ -73,6 +73,10 @@ LLM_MAX_RETRIES=6
 LLM_RETRY_BASE_DELAY_SECONDS=5
 LLM_RETRY_MAX_DELAY_SECONDS=120
 LLM_RETRY_JITTER_SECONDS=1
+LLM_MAX_OUTPUT_TOKENS=800
+# OPENAI_USE_RESPONSE_FORMAT=false
+# OPENROUTER_HTTP_REFERER=https://github.com/<owner>/<repo>
+# OPENROUTER_APP_TITLE=llm_stock_report
 
 STOCK_LIST_CN=SH600519,SZ000001,SZ300750
 STOCK_LIST_US=AAPL,MSFT,NVDA
@@ -85,6 +89,7 @@ Notes:
 - `PAGES_DEFAULT_LANGUAGE` supports `zh` or `en` for default Pages entry route (`/zh/` or `/en/`).
 - Use comma-separated values, no line breaks.
 - GitHub-hosted runners usually cannot reach your local `127.0.0.1:11434`; use Ollama on self-hosted runners if needed.
+- For OpenRouter free models, set `LLM_MAX_OUTPUT_TOKENS` to around `500-900`, and prefer non-`:free` models to reduce 429/timeout failures.
 
 ## 5. Workflow-to-env mapping
 

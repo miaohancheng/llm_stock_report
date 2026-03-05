@@ -73,6 +73,10 @@ LLM_MAX_RETRIES=6
 LLM_RETRY_BASE_DELAY_SECONDS=5
 LLM_RETRY_MAX_DELAY_SECONDS=120
 LLM_RETRY_JITTER_SECONDS=1
+LLM_MAX_OUTPUT_TOKENS=800
+# OPENAI_USE_RESPONSE_FORMAT=false
+# OPENROUTER_HTTP_REFERER=https://github.com/<owner>/<repo>
+# OPENROUTER_APP_TITLE=llm_stock_report
 
 STOCK_LIST_CN=SH600519,SZ000001,SZ300750
 STOCK_LIST_US=AAPL,MSFT,NVDA
@@ -85,6 +89,7 @@ STOCK_LIST_HK=HK00700,HK03690,HK09988
 - `PAGES_DEFAULT_LANGUAGE` 支持 `zh` 或 `en`，用于控制 Pages 默认入口（`/zh/` 或 `/en/`）。
 - 变量值用英文逗号分隔，不要换行。
 - GitHub Hosted Runner 通常无法访问你本地 `127.0.0.1:11434`，若要在 Actions 用 Ollama 建议 self-hosted runner。
+- 若使用 OpenRouter 免费模型，建议将 `LLM_MAX_OUTPUT_TOKENS` 设为 `500-900`，并优先使用非 `:free` 模型降低 429/timeout 失败率。
 
 ## 5. Workflow 与变量映射关系
 

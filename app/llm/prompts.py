@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import json
-
 from app.common.schemas import NewsItem, PredictionRecord
 
 
@@ -43,17 +41,17 @@ def build_stock_reasoning_prompt(
     )
 
     news_lines = []
-    for idx, item in enumerate(news_items, start=1):
+    for idx, item in enumerate(news_items[:4], start=1):
         if language == "en":
             news_lines.append(
                 f"[N{idx}] Title: {item.title}\n"
-                f"      Snippet: {item.snippet[:180]}\n"
+                f"      Snippet: {item.snippet[:120]}\n"
                 f"      URL: {item.url}"
             )
         else:
             news_lines.append(
                 f"[N{idx}] 标题: {item.title}\n"
-                f"      摘要: {item.snippet[:180]}\n"
+                f"      摘要: {item.snippet[:120]}\n"
                 f"      链接: {item.url}"
             )
 
@@ -210,22 +208,20 @@ def build_market_reasoning_prompt(
     ) or ("- None" if language == "en" else "- 无")
 
     news_lines = []
-    for idx, item in enumerate(news_items, start=1):
+    for idx, item in enumerate(news_items[:4], start=1):
         if language == "en":
             news_lines.append(
                 f"[N{idx}] Title: {item.title}\n"
-                f"      Snippet: {item.snippet[:180]}\n"
+                f"      Snippet: {item.snippet[:120]}\n"
                 f"      URL: {item.url}"
             )
         else:
             news_lines.append(
                 f"[N{idx}] 标题: {item.title}\n"
-                f"      摘要: {item.snippet[:180]}\n"
+                f"      摘要: {item.snippet[:120]}\n"
                 f"      链接: {item.url}"
             )
     news_block = "\n".join(news_lines) if news_lines else ("No related news" if language == "en" else "无相关新闻")
-
-    snapshot_json = json.dumps(market_snapshot, ensure_ascii=False)
 
     if language == "en":
         return f"""
@@ -248,9 +244,6 @@ Top losers:
 
 News evidence:
 {news_block}
-
-Structured snapshot(JSON):
-{snapshot_json}
 
 Output requirements (all required):
 1) summary <= 70 words with market risk preference and uncertainty
@@ -295,9 +288,6 @@ Output JSON only:
 
 新闻证据:
 {news_block}
-
-结构化快照(JSON):
-{snapshot_json}
 
 输出要求（必须同时满足）：
 1) summary 不超过 70 字，给出市场风险偏好判断与不确定性
