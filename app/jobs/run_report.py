@@ -334,6 +334,13 @@ def main() -> int:
             status = "partial"
         elif not successful_predictions:
             status = "failed"
+            if sorted_predictions:
+                logger.error(
+                    "All symbols failed at narrative stage. predictions=%d failed=%d market=%s",
+                    len(sorted_predictions),
+                    len(failed_symbols),
+                    market,
+                )
 
         run_meta = RunMeta(
             run_id=run_id,

@@ -28,6 +28,9 @@ def _train_with_lightgbm(train_frame: pd.DataFrame) -> tuple[object, str]:
         n_estimators=300,
         learning_rate=0.05,
         num_leaves=31,
+        min_child_samples=20,
+        force_col_wise=True,
+        verbosity=-1,
         random_state=42,
     )
     x = train_frame[FEATURE_COLUMNS].to_numpy(dtype=float)
@@ -57,6 +60,23 @@ def train_market_model(
 
     if len(train_frame) < 30:
         logger.warning("Training rows are very small (%d), model quality may be poor", len(train_frame))
+
+    symbol_count = int(train_frame["symbol"].nunique()) if "symbol" in train_frame.columns else 0
+    if 0 < symbol_count < 3:
+        logger.warning(
+            "Universe has only %d symbol(s); skip LightGBM and use linear fallback for stability",
+            symbol_count,
+        )
+        model, engine = _train_with_linear_fallback(train_frame)
+        return ModelBundle(
+            model=model,
+            feature_columns=list(FEATURE_COLUMNS),
+            model_version=model_version,
+            engine=f"{engine}-small-universe",
+            trained_at=datetime.utcnow().isoformat(timespec="seconds"),
+            data_window_start=data_window_start,
+            data_window_end=data_window_end,
+        )
 
     model: object
     engine: str
