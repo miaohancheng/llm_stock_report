@@ -161,31 +161,48 @@ def _market_mood_text(market_snapshot: dict[str, Any], language: str) -> str:
     return "震荡整理"
 
 
-def _default_fallback(symbol: str, prediction: PredictionRecord, provider: str, language: str = "zh") -> StockNarrative:
+def _default_fallback(
+    symbol: str,
+    prediction: PredictionRecord,
+    provider: str,
+    language: str = "zh",
+    *,
+    reason: str | None = None,
+) -> StockNarrative:
     language = (language or "zh").strip().lower()
+    reason_text = (reason or "").strip()
     if language == "en":
         summary = (
             f"{symbol} score={prediction.score:.2f}; model side={prediction.side}. "
-            "Use strict risk control and avoid single-signal decisions."
+            "Use strict risk control and avoid single-signal decisions. Template fallback applied."
         )
         details = (
-            "This output is based on factor-model ranking. Do not rely on it alone when news evidence is missing or LLM parsing fails."
+            "This output is based on factor-model ranking. Do not rely on it alone when news evidence is missing or LLM parsing fails.\n\n"
+            "Watchpoints: monitor volume expansion, MA20 trend integrity, and event-driven volatility."
         )
         reliability_notes = ["Insufficient news evidence or LLM parse fallback."]
+        if reason_text:
+            reliability_notes.append(f"Fallback reason: {reason_text[:180]}")
     else:
         summary = (
             f"{symbol} 预测分数 {prediction.score:.2f}，"
-            f"模型信号为{prediction.side}，请结合风险控制审慎评估。"
+            f"模型信号为{prediction.side}，请结合风险控制审慎评估（已启用模板兜底）。"
         )
         details = (
-            "模型输出来自量化因子排序，新闻证据不足或解析失败时不建议单独依赖该信号。"
+            "模型输出来自量化因子排序，新闻证据不足或解析失败时不建议单独依赖该信号。\n\n"
+            "观察要点：关注量能变化、MA20趋势完整性与事件催化带来的波动。"
         )
         reliability_notes = ["新闻证据不足或LLM解析失败"]
+        if reason_text:
+            reliability_notes.append(f"兜底原因: {reason_text[:180]}")
+
+    provider_label = (provider or "none").strip() or "none"
+    used_provider = f"{provider_label}+template"
     return StockNarrative(
         symbol=symbol,
         summary=summary,
         details=details,
-        used_provider=provider,
+        used_provider=used_provider,
         news_items=[],
         decision=_normalize_decision("", prediction),
         trend=_normalize_trend("", prediction),
@@ -356,8 +373,14 @@ def generate_stock_narrative(
     try:
         parsed: dict[str, Any] = llm_client.chat_json(get_system_prompt(language), prompt)
     except LLMError as exc:
-        logger.warning("LLM failed for %s: %s", prediction.symbol, exc)
-        raise
+        logger.warning("LLM failed for %s, use template fallback: %s", prediction.symbol, exc)
+        return _default_fallback(
+            prediction.symbol,
+            prediction,
+            provider_used,
+            language=language,
+            reason=str(exc),
+        )
 
     summary = str(parsed.get("summary") or "").strip()
     details = str(parsed.get("details") or "").strip()
