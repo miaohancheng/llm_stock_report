@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import random
+import re
 import time
 from dataclasses import dataclass
 from typing import Any, Protocol
@@ -164,6 +165,8 @@ def post_json_with_retry(
 
 
 def parse_json_text(raw_text: Any, *, provider_name: str) -> dict[str, Any]:
+    if isinstance(raw_text, dict):
+        return raw_text
     if isinstance(raw_text, str):
         text = raw_text.strip()
     elif raw_text is None:
@@ -193,6 +196,78 @@ def parse_json_text(raw_text: Any, *, provider_name: str) -> dict[str, Any]:
                 raise ValueError("JSON root must be object")
             return parsed
         except Exception:
-            continue
+            repaired = _repair_truncated_json(candidate)
+            if repaired:
+                try:
+                    parsed = json.loads(repaired)
+                    if not isinstance(parsed, dict):
+                        raise ValueError("JSON root must be object")
+                    return parsed
+                except Exception:
+                    continue
 
     raise LLMError(f"{provider_name} response is not valid JSON: {text[:300]}")
+
+
+def _repair_truncated_json(raw: str) -> str | None:
+    text = (raw or "").strip()
+    if not text:
+        return None
+
+    left = text.find("{")
+    if left < 0:
+        return None
+    text = text[left:]
+
+    out: list[str] = []
+    stack: list[str] = []
+    in_string = False
+    escaped = False
+
+    for ch in text:
+        out.append(ch)
+        if in_string:
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == '"':
+                in_string = False
+            continue
+
+        if ch == '"':
+            in_string = True
+        elif ch in "{[":
+            stack.append(ch)
+        elif ch in "}]":
+            if not stack:
+                continue
+            top = stack[-1]
+            if (top == "{" and ch == "}") or (top == "[" and ch == "]"):
+                stack.pop()
+
+    repaired = "".join(out).rstrip()
+    if not repaired:
+        return None
+
+    # If truncated inside a string, close it safely.
+    if in_string:
+        if escaped:
+            repaired += "\\"
+        repaired += '"'
+
+    # Remove dangling comma before closing containers.
+    repaired = re.sub(r",\s*$", "", repaired)
+
+    # If truncated right after a key colon, fill a null value.
+    if re.search(r":\s*$", repaired):
+        repaired = f"{repaired} null"
+
+    if stack:
+        closing = "".join("}" if token == "{" else "]" for token in reversed(stack))
+        repaired = f"{repaired}{closing}"
+
+    repaired = repaired.strip()
+    if not (repaired.startswith("{") and repaired.endswith("}")):
+        return None
+    return repaired

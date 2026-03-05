@@ -7,9 +7,13 @@ from app.common.schemas import PredictionRecord
 from app.model.registry import ModelBundle
 
 
-def _predict_values(model: object, x: np.ndarray) -> np.ndarray:
+def _predict_values(model: object, x_frame: pd.DataFrame) -> np.ndarray:
     if hasattr(model, "predict"):
-        pred = model.predict(x)
+        try:
+            # Keep dataframe columns so tree models fitted with feature names stay consistent.
+            pred = model.predict(x_frame)
+        except Exception:
+            pred = model.predict(x_frame.to_numpy(dtype=float))
         return np.asarray(pred, dtype=float)
     raise TypeError("Model object does not support predict")
 
@@ -24,8 +28,8 @@ def build_predictions(
     if predict_frame.empty:
         return []
 
-    x = predict_frame[bundle.feature_columns].to_numpy(dtype=float)
-    raw = _predict_values(bundle.model, x)
+    x_frame = predict_frame[bundle.feature_columns].copy()
+    raw = _predict_values(bundle.model, x_frame)
     std = float(np.std(raw)) if len(raw) > 1 else 0.0
     scores = (raw - float(np.mean(raw))) / (std if std > 1e-12 else 1.0)
 
