@@ -10,5 +10,17 @@
     "success_symbols": 3,
     "total_symbols": 3,
     "updated_at": "2026-03-05T06:33:20+00:00"
+  },
+  {
+    "id": "hk-2026-03-04",
+    "market": "hk",
+    "date": "2026-03-04",
+    "title": "[HK] 2026-03-04 Daily Case",
+    "path": "cases/hk/2026-03-04.md",
+    "summary_line": "> [HK] 共分析 2 只股票 | 🟢买入:0 🟡观望:2 🟠减仓:0 🔴卖出:0",
+    "status": "partial",
+    "success_symbols": 2,
+    "total_symbols": 4,
+    "updated_at": "2026-03-05T06:48:55+00:00"
   }
 ]
