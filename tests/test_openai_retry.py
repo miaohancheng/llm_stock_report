@@ -136,6 +136,77 @@ class OpenAIRetryTest(unittest.TestCase):
         self.assertTrue(payloads)
         self.assertNotIn("response_format", payloads[0])
 
+    def test_retry_when_content_empty_then_success(self) -> None:
+        calls = {"n": 0}
+
+        def fake_post(url, headers, json, timeout):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                return _Resp(200, {"choices": [{"message": {"content": ""}}]})
+            return _Resp(
+                200,
+                {
+                    "choices": [
+                        {
+                            "message": {
+                                "content": '{"summary":"ok","details":"ok","risk_points":[],"action_bias":"中性","confidence":50,"evidence_used":[],"reliability_notes":[]}'
+                            }
+                        }
+                    ]
+                },
+            )
+
+        client = OpenAIClient(
+            api_key="k",
+            base_url="https://openrouter.ai/api/v1",
+            model="openai/gpt-oss-120b:free",
+            max_retries=1,
+            retry_base_delay_seconds=0,
+            retry_max_delay_seconds=0,
+            retry_jitter_seconds=0,
+        )
+
+        with patch("app.llm.base.requests.post", side_effect=fake_post):
+            result = client.chat_json("sys", "user")
+
+        self.assertEqual(2, calls["n"])
+        self.assertEqual("ok", result["summary"])
+
+    def test_parse_content_list_segments(self) -> None:
+        def fake_post(url, headers, json, timeout):
+            return _Resp(
+                200,
+                {
+                    "choices": [
+                        {
+                            "message": {
+                                "content": [
+                                    {
+                                        "type": "output_text",
+                                        "text": '{"summary":"ok","details":"ok","risk_points":[],"action_bias":"中性","confidence":50,"evidence_used":[],"reliability_notes":[]}',
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                },
+            )
+
+        client = OpenAIClient(
+            api_key="k",
+            base_url="https://openrouter.ai/api/v1",
+            model="openai/gpt-oss-120b:free",
+            max_retries=1,
+            retry_base_delay_seconds=0,
+            retry_max_delay_seconds=0,
+            retry_jitter_seconds=0,
+        )
+
+        with patch("app.llm.base.requests.post", side_effect=fake_post):
+            result = client.chat_json("sys", "user")
+
+        self.assertEqual("ok", result["summary"])
+
 
 if __name__ == "__main__":
     unittest.main()
