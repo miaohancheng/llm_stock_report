@@ -86,6 +86,7 @@ LLM 至少配置一组：
 ### 关键可选参数（推荐配置）
 - `LLM_PROVIDER`（`openai` / `gemini` / `ollama`）
 - `REPORT_LANGUAGE`（`zh` / `en`，控制 Telegram 推送与报告文本语言）
+- `PAGES_SITE_BASE_URL`（用于 Telegram 卡片尾部追加 Pages 链接，例如 `https://miaohancheng.com/llm_stock_report`）
 - `PAGES_DEFAULT_LANGUAGE`（`zh` / `en`，控制 GitHub Pages 默认入口语言）
 - `PAGES_CASE_RETENTION_DAYS`（Pages 案例页仅展示最近 N 天，默认 3）
 - `STOCK_LIST_CN` / `STOCK_LIST_US` / `STOCK_LIST_HK`（环境变量覆盖股票池）
@@ -192,6 +193,7 @@ Configure at least one LLM path:
 ### Important optional knobs
 - `LLM_PROVIDER` (`openai` / `gemini` / `ollama`)
 - `REPORT_LANGUAGE` (`zh` / `en`, controls Telegram/report language)
+- `PAGES_SITE_BASE_URL` (used to append the Pages case link at the end of Telegram cards)
 - `PAGES_DEFAULT_LANGUAGE` (`zh` / `en`, controls default landing language for GitHub Pages)
 - `PAGES_CASE_RETENTION_DAYS` (show only latest N days in Pages cases, default `3`)
 - `STOCK_LIST_CN` / `STOCK_LIST_US` / `STOCK_LIST_HK` (env override for universe)

@@ -49,6 +49,7 @@ OPENAI_MODEL=gpt-4o-mini
 OPENAI_BASE_URL=https://api.openai.com/v1
 LLM_PROVIDER=openai
 REPORT_LANGUAGE=zh
+PAGES_SITE_BASE_URL=https://miaohancheng.com/llm_stock_report
 PAGES_DEFAULT_LANGUAGE=zh
 PAGES_CASE_RETENTION_DAYS=3
 GEMINI_MODEL=gemini-2.0-flash
@@ -88,6 +89,7 @@ STOCK_LIST_HK=HK00700,HK03690,HK09988
 Notes:
 - `STOCK_LIST_CN/US/HK` already override `config/universe.yaml` in workflows.
 - `REPORT_LANGUAGE` supports `zh` or `en` for Telegram/report output language.
+- `PAGES_SITE_BASE_URL` is used to append the matching Pages case link to Telegram card footers.
 - `PAGES_DEFAULT_LANGUAGE` supports `zh` or `en` for default Pages entry route (`/zh/` or `/en/`).
 - `PAGES_CASE_RETENTION_DAYS` controls how many recent days are shown on Pages cases (default `3`).
 - `DAILY_ANALYSIS_LOOKBACK_DAYS` controls the lookback window for daily reasoning context (default `30`).

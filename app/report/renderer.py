@@ -231,6 +231,149 @@ def _feature_display_name(key: str, language: str) -> str:
     return mapping.get(key, key)
 
 
+def _compact_text(text: str | None, max_len: int = 120) -> str:
+    value = " ".join((text or "").split())
+    if len(value) <= max_len:
+        return value
+    clipped = value[: max_len - 1].rstrip(" ,;:，；：。.!?、")
+    return f"{clipped}…"
+
+
+def _brief_join(items: list[str], language: str, empty_zh: str, empty_en: str, limit: int = 2) -> str:
+    selected = [_compact_text(item, 36) for item in items if item][:limit]
+    if selected:
+        return ("; " if _is_en(language) else "；").join(selected)
+    return empty_en if _is_en(language) else empty_zh
+
+
+def _telegram_action_hint(decision: str, language: str) -> str:
+    if _is_en(language):
+        mapping = {
+            "买入": "Action: place on priority watchlist and wait for trend or volume confirmation.",
+            "观望": "Action: stay patient and wait for a clearer setup.",
+            "减仓": "Action: reduce exposure first if rebound strength stays weak.",
+            "卖出": "Action: stay defensive and prioritize drawdown control.",
+            "卖出/观望": "Action: stay defensive and avoid adding risk prematurely.",
+        }
+        return mapping.get(decision, "Action: keep size small until signal quality improves.")
+    mapping = {
+        "买入": "动作: 列入优先观察，等趋势或放量确认后再动。",
+        "观望": "动作: 先等信号更清晰，不急着开仓。",
+        "减仓": "动作: 若反弹力度一般，先降仓位。",
+        "卖出": "动作: 以防守为主，优先控制回撤。",
+        "卖出/观望": "动作: 先防守，暂不主动增加风险。",
+    }
+    return mapping.get(decision, "动作: 控制仓位，等待更高质量信号。")
+
+
+def _telegram_pages_link_lines(pages_url: str | None, language: str) -> list[str]:
+    if not pages_url:
+        return []
+    if _is_en(language):
+        return ["- Web: [Open full report](%s)" % pages_url]
+    return ["- 网页版: [查看完整报告](%s)" % pages_url]
+
+
+def _summary_focus_line(
+    prediction: PredictionRecord,
+    narrative: StockNarrative | None,
+    language: str,
+) -> str:
+    decision = narrative.decision if narrative else _default_decision(prediction)
+    decision_text = _display_decision(decision, language)
+    score_100 = _score_to_dashboard(prediction.score)
+    icon = _decision_icon(decision)
+    pred_text = _format_return_pct(prediction.pred_return)
+    if _is_en(language):
+        return f"{icon} {prediction.symbol} | {decision_text} | Score {score_100} | Pred {pred_text}"
+    return f"{icon} {prediction.symbol} | {decision_text} | 评分 {score_100} | 预测 {pred_text}"
+
+
+def render_summary_telegram_card(
+    market: str,
+    asof_date: str,
+    predictions: list[PredictionRecord],
+    narratives: dict[str, StockNarrative],
+    failed_symbols: list[str],
+    market_summary: str | None = None,
+    language: str = "zh",
+    pages_url: str | None = None,
+) -> str:
+    language = (language or "zh").strip().lower()
+    tag = market_tag(market)
+    buy = 0
+    watch = 0
+    trim = 0
+    sell = 0
+
+    for prediction in predictions:
+        narrative = narratives.get(prediction.symbol)
+        decision = narrative.decision if narrative else _default_decision(prediction)
+        if decision == "买入":
+            buy += 1
+        elif decision == "减仓":
+            trim += 1
+        elif decision in {"卖出", "卖出/观望"}:
+            sell += 1
+        else:
+            watch += 1
+
+    focus_predictions = sorted(predictions, key=lambda item: item.rank)[:5]
+    lines = [
+        f"# 🎯 {asof_date} {'Trade Cards' if _is_en(language) else '交易卡片'}",
+        "",
+        (
+            f"> [{tag}] {len(predictions)} symbols | 🟢Buy {buy} | 🟡Hold {watch} | 🟠Trim {trim} | 🔴Sell {sell}"
+            if _is_en(language)
+            else f"> [{tag}] 覆盖 {len(predictions)} 只 | 🟢买入 {buy} | 🟡观望 {watch} | 🟠减仓 {trim} | 🔴卖出 {sell}"
+        ),
+    ]
+
+    if market_summary:
+        lines.append(
+            f"- Market: {_compact_text(market_summary, 110)}"
+            if _is_en(language)
+            else f"- 大盘一句话: {_compact_text(market_summary, 110)}"
+        )
+
+    if focus_predictions:
+        best = focus_predictions[0]
+        lines.append(
+            f"- Top setup: {_summary_focus_line(best, narratives.get(best.symbol), language)}"
+            if _is_en(language)
+            else f"- 最强信号: {_summary_focus_line(best, narratives.get(best.symbol), language)}"
+        )
+        if len(predictions) > 1:
+            risk = min(predictions, key=lambda item: item.score)
+            lines.append(
+                f"- Main risk: {_summary_focus_line(risk, narratives.get(risk.symbol), language)}"
+                if _is_en(language)
+                else f"- 主要风险: {_summary_focus_line(risk, narratives.get(risk.symbol), language)}"
+            )
+
+        lines.extend(["", "## Focus List" if _is_en(language) else "## 关注名单"])
+        for prediction in focus_predictions:
+            lines.append(f"- {_summary_focus_line(prediction, narratives.get(prediction.symbol), language)}")
+
+    if failed_symbols:
+        lines.append(
+            f"- Skipped: {len(failed_symbols)} ({', '.join(failed_symbols[:5])})"
+            if _is_en(language)
+            else f"- 跳过: {len(failed_symbols)} 只（{', '.join(failed_symbols[:5])}）"
+        )
+
+    lines.extend(
+        [
+            "",
+            "*For research only. Not investment advice.*"
+            if _is_en(language)
+            else "*仅供研究参考，不构成投资建议。*",
+        ]
+    )
+    lines.extend(_telegram_pages_link_lines(pages_url, language))
+    return "\n".join(lines)
+
+
 def render_summary_markdown(
     market: str,
     asof_date: str,
@@ -311,6 +454,91 @@ def render_summary_markdown(
         if _is_en(language)
         else "*仅供研究参考，不构成投资建议。*"
     )
+    return "\n".join(lines)
+
+
+def render_symbol_detail_telegram_card(
+    market: str,
+    asof_date: str,
+    prediction: PredictionRecord,
+    narrative: StockNarrative,
+    language: str = "zh",
+    pages_url: str | None = None,
+) -> str:
+    language = (language or "zh").strip().lower()
+    tag = market_tag(market)
+    score_100 = _score_to_dashboard(prediction.score)
+    decision = narrative.decision or _default_decision(prediction)
+    trend = narrative.trend or _default_trend(prediction)
+    urgency = narrative.urgency or "中"
+    decision_text = _display_decision(decision, language)
+    trend_text = _display_trend(trend, language)
+    urgency_text = _display_urgency(urgency, language)
+    icon = _decision_icon(decision)
+    pred_text = _format_return_pct(prediction.pred_return)
+    catalysts = _brief_join(
+        narrative.catalysts,
+        language,
+        empty_zh="暂无明显利好催化",
+        empty_en="No clear upside catalyst yet",
+    )
+    risks = _brief_join(
+        narrative.risk_points,
+        language,
+        empty_zh="暂无新增高优先风险",
+        empty_en="No new high-priority risk",
+    )
+    lines = [
+        f"# {icon} {prediction.symbol}",
+        "",
+        (
+            f"> [{tag}] {asof_date} | {decision_text} | {trend_text} | Score {score_100}"
+            if _is_en(language)
+            else f"> [{tag}] {asof_date} | {decision_text} | {trend_text} | 评分 {score_100}"
+        ),
+        (
+            f"- View: {_compact_text(narrative.summary, 120)}"
+            if _is_en(language)
+            else f"- 一句话: {_compact_text(narrative.summary, 120)}"
+        ),
+        (
+            f"- Pred: {pred_text} | { _side_label(prediction.side, language) } | Urgency {urgency_text}"
+            if _is_en(language)
+            else f"- 预测: {pred_text} | {_side_label(prediction.side, language)} | 时效 {urgency_text}"
+        ),
+    ]
+
+    if narrative.latest_close is not None:
+        lines.append(
+            f"- Latest close: {narrative.latest_close:.4f} | Source {narrative.used_provider}"
+            if _is_en(language)
+            else f"- 最新收盘: {narrative.latest_close:.4f} | 来源 {narrative.used_provider}"
+        )
+    else:
+        lines.append(
+            f"- News source: {narrative.used_provider}"
+            if _is_en(language)
+            else f"- 新闻来源: {narrative.used_provider}"
+        )
+
+    lines.append(f"- Catalysts: {catalysts}" if _is_en(language) else f"- 催化: {catalysts}")
+    lines.append(f"- Risks: {risks}" if _is_en(language) else f"- 风险: {risks}")
+    lines.append(f"- {_telegram_action_hint(decision, language)}")
+
+    if narrative.news_items:
+        lines.extend(["", "## News Hooks" if _is_en(language) else "## 新闻线索"])
+        for item in narrative.news_items[:2]:
+            lines.append(f"- [{_compact_text(item.title, 60)}]({item.url})")
+
+    lines.extend(
+        [
+            "",
+            "*For research only. Not investment advice.*"
+            if _is_en(language)
+            else "*仅供研究参考，不构成投资建议。*",
+        ]
+    )
+    lines.extend(_telegram_pages_link_lines(pages_url, language))
     return "\n".join(lines)
 
 
@@ -468,7 +696,78 @@ def render_symbol_detail_markdown(
                 "",
                 "*仅供研究参考，不构成投资建议。*",
             ]
+    )
+    return "\n".join(lines)
+
+
+def render_market_detail_telegram_card(
+    market: str,
+    asof_date: str,
+    market_snapshot: dict,
+    narrative: MarketNarrative,
+    language: str = "zh",
+    pages_url: str | None = None,
+) -> str:
+    language = (language or "zh").strip().lower()
+    tag = market_tag(market)
+    up = int(market_snapshot.get("up_count", 0))
+    down = int(market_snapshot.get("down_count", 0))
+    flat = int(market_snapshot.get("flat_count", 0))
+    avg_ret_1d = float(market_snapshot.get("avg_ret_1d", 0.0))
+    median_ret_1d = float(market_snapshot.get("median_ret_1d", 0.0))
+    lines = [
+        f"# 🌐 [{tag}] {asof_date} {'Market Card' if _is_en(language) else '大盘卡片'}",
+        "",
+        f"> {_compact_text(narrative.summary, 120)}",
+        (
+            f"- Breadth: up {up} / down {down} / flat {flat}"
+            if _is_en(language)
+            else f"- 宽度: 涨 {up} / 跌 {down} / 平 {flat}"
+        ),
+        (
+            f"- Avg/Median 1D: {avg_ret_1d * 100:+.2f}% / {median_ret_1d * 100:+.2f}%"
+            if _is_en(language)
+            else f"- 均值/中位 1日: {avg_ret_1d * 100:+.2f}% / {median_ret_1d * 100:+.2f}%"
+        ),
+        (
+            f"- Read: {_compact_text(_market_breadth_comment(up, down, flat, language), 100)}"
+            if _is_en(language)
+            else f"- 解读: {_compact_text(_market_breadth_comment(up, down, flat, language), 100)}"
+        ),
+        (
+            f"- News source: {narrative.used_provider}"
+            if _is_en(language)
+            else f"- 新闻来源: {narrative.used_provider}"
+        ),
+    ]
+
+    benchmarks = market_snapshot.get("benchmarks", []) or []
+    if benchmarks:
+        formatted = []
+        for item in benchmarks[:2]:
+            formatted.append(
+                f"{item.get('name')} {float(item.get('ret_1d', 0.0)) * 100:+.2f}%"
+            )
+        lines.append(
+            f"- Benchmarks: {' | '.join(formatted)}"
+            if _is_en(language)
+            else f"- 指数: {' | '.join(formatted)}"
         )
+
+    if narrative.news_items:
+        lines.extend(["", "## News Hooks" if _is_en(language) else "## 新闻线索"])
+        for item in narrative.news_items[:2]:
+            lines.append(f"- [{_compact_text(item.title, 60)}]({item.url})")
+
+    lines.extend(
+        [
+            "",
+            "*For research only. Not investment advice.*"
+            if _is_en(language)
+            else "*仅供研究参考，不构成投资建议。*",
+        ]
+    )
+    lines.extend(_telegram_pages_link_lines(pages_url, language))
     return "\n".join(lines)
 
 

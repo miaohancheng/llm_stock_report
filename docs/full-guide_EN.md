@@ -96,6 +96,7 @@ Optional:
 - `OLLAMA_BASE_URL`
 - `LLM_PROVIDER`
 - `REPORT_LANGUAGE` (`zh` / `en`, default `zh`)
+- `PAGES_SITE_BASE_URL` (used to append Pages links at the end of Telegram cards)
 - `PAGES_DEFAULT_LANGUAGE` (`zh` / `en`, default `zh`)
 - `PAGES_CASE_RETENTION_DAYS` (Pages case retention days, default `3`)
 - `MAX_STOCKS_PER_RUN`
@@ -195,7 +196,10 @@ Send order:
 Behavior:
 - Max message length default: 3500 chars
 - Long content is force-chunked with `(i/n)` markers
-- Markdown content is escaped before sending
+- Local files stay in Markdown; Telegram messages are converted into Telegram-safe HTML formatting before send
+- Titles, emphasis, and news links are rendered in a Telegram-compatible format instead of exposing raw Markdown
+- Telegram copy is also condensed into short "card" style blurbs instead of long reasoning paragraphs
+- If `PAGES_SITE_BASE_URL` is configured, each card footer includes the daily case webpage link
 
 ## 9. GitHub Actions
 
@@ -242,6 +246,7 @@ Optional:
 - `OPENAI_MODEL`
 - `LLM_PROVIDER` (`openai` / `gemini` / `ollama`)
 - `REPORT_LANGUAGE` (`zh` / `en`, default `zh`)
+- `PAGES_SITE_BASE_URL` (used for Telegram card footer links)
 - `PAGES_DEFAULT_LANGUAGE` (`zh` / `en`, default `zh`)
 - `PAGES_CASE_RETENTION_DAYS` (default `3`)
 - `GEMINI_MODEL`
@@ -278,6 +283,7 @@ Retention: 14 days.
 - `LLM_RETRY_JITTER_SECONDS`: random jitter for LLM retries (default `1`)
 - `LLM_PROVIDER`: provider switch (`openai` / `gemini` / `ollama`)
 - `REPORT_LANGUAGE`: report and Telegram language (`zh` / `en`)
+- `PAGES_SITE_BASE_URL`: site root used to append daily case webpage links to Telegram cards
 - `PAGES_DEFAULT_LANGUAGE`: default landing language for GitHub Pages (`zh` / `en`)
 - `PAGES_CASE_RETENTION_DAYS`: GitHub Pages keeps latest N calendar days in cases (`3` by default)
 - `GEMINI_MODEL`: Gemini model name (default `gemini-2.0-flash`)

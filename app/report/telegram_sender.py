@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+from html import escape
 import logging
 from typing import Iterable
 
 import requests
 
-from app.report.splitter import escape_telegram_markdown, split_text
+from app.report.splitter import render_telegram_html, split_markdown_for_telegram_html
 
 logger = logging.getLogger(__name__)
 
@@ -31,8 +32,8 @@ class TelegramSender:
         url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
         payload = {
             "chat_id": self.chat_id,
-            "text": escape_telegram_markdown(text),
-            "parse_mode": "MarkdownV2",
+            "text": text,
+            "parse_mode": "HTML",
             "disable_web_page_preview": True,
         }
         if self.message_thread_id:
@@ -47,19 +48,21 @@ class TelegramSender:
             raise RuntimeError(f"Telegram send failed: {data}")
 
     def send_summary(self, title: str, content: str) -> None:
-        self._post(f"{title}\n\n{content}")
+        summary_html = render_telegram_html(content)
+        self._post(f"<b>{escape(title)}</b>\n\n{summary_html}")
 
-    def send_detail_for_symbol(self, market_tag: str, symbol: str, detail_markdown: str) -> None:
-        chunks = split_text(detail_markdown, self.limit)
+    def send_detail_for_symbol(self, market_tag: str, symbol: str, detail_content: str) -> None:
+        content_limit = max(200, self.limit - 128)
+        chunks = split_markdown_for_telegram_html(detail_content, content_limit)
         total = len(chunks)
         for idx, chunk in enumerate(chunks, start=1):
             title = f"[{market_tag}][{symbol}][{idx}/{total}]"
-            self._post(f"{title}\n\n{chunk}")
+            self._post(f"<b>{escape(title)}</b>\n\n{chunk}")
 
     def send_report(
         self,
         summary_title: str,
-        summary_markdown: str,
+        summary_content: str,
         market_tag: str,
         detail_blocks: Iterable[tuple[str, str]],
     ) -> None:
@@ -67,6 +70,6 @@ class TelegramSender:
             logger.warning("Telegram is not configured, skip sending")
             return
 
-        self.send_summary(summary_title, summary_markdown)
+        self.send_summary(summary_title, summary_content)
         for symbol, detail in detail_blocks:
             self.send_detail_for_symbol(market_tag, symbol, detail)

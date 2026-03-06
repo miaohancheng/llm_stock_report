@@ -29,6 +29,7 @@ class AppConfig:
     outputs_root: Path
     models_root: Path
     qlib_data_root: Path
+    pages_site_base_url: str | None = None
     market_index_fetch_enabled: bool = False
     llm_provider: str = "openai"
     gemini_api_key: str | None = None
@@ -102,6 +103,13 @@ def _parse_symbol_list(value: Any) -> list[str]:
 def _normalize_report_language(value: str) -> str:
     raw = (value or "").strip().lower()
     return raw if raw in {"zh", "en"} else "zh"
+
+
+def _normalize_pages_site_base_url(value: str | None) -> str | None:
+    raw = (value or "").strip()
+    if not raw:
+        return None
+    return raw.rstrip("/")
 
 
 def load_config(project_root: Path | None = None) -> AppConfig:
@@ -184,6 +192,9 @@ def load_config(project_root: Path | None = None) -> AppConfig:
     report_language = _normalize_report_language(
         os.getenv("REPORT_LANGUAGE", str(report_cfg.get("report_language", "zh")))
     )
+    pages_site_base_url = _normalize_pages_site_base_url(
+        os.getenv("PAGES_SITE_BASE_URL", str(report_cfg.get("pages_site_base_url", "")))
+    )
 
     outputs_root = root / os.getenv("OUTPUTS_ROOT", "outputs")
     models_root = root / os.getenv("MODELS_ROOT", "models")
@@ -213,6 +224,7 @@ def load_config(project_root: Path | None = None) -> AppConfig:
         outputs_root=outputs_root,
         models_root=models_root,
         qlib_data_root=qlib_data_root,
+        pages_site_base_url=pages_site_base_url,
         market_index_fetch_enabled=market_index_fetch_enabled,
         llm_provider=llm_provider,
         gemini_api_key=os.getenv("GEMINI_API_KEY"),

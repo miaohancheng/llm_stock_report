@@ -49,6 +49,7 @@ OPENAI_MODEL=gpt-4o-mini
 OPENAI_BASE_URL=https://api.openai.com/v1
 LLM_PROVIDER=openai
 REPORT_LANGUAGE=zh
+PAGES_SITE_BASE_URL=https://miaohancheng.com/llm_stock_report
 PAGES_DEFAULT_LANGUAGE=zh
 PAGES_CASE_RETENTION_DAYS=3
 GEMINI_MODEL=gemini-2.0-flash
@@ -88,6 +89,7 @@ STOCK_LIST_HK=HK00700,HK03690,HK09988
 说明：
 - `STOCK_LIST_CN/US/HK` 已接入 workflow，会覆盖 `config/universe.yaml`。
 - `REPORT_LANGUAGE` 支持 `zh` 或 `en`，用于控制 Telegram 推送语言。
+- `PAGES_SITE_BASE_URL` 用于给 Telegram 卡片尾部追加对应的 Pages 案例链接。
 - `PAGES_DEFAULT_LANGUAGE` 支持 `zh` 或 `en`，用于控制 Pages 默认入口（`/zh/` 或 `/en/`）。
 - `PAGES_CASE_RETENTION_DAYS` 控制 Pages 案例页展示最近 N 天（默认 3）。
 - `DAILY_ANALYSIS_LOOKBACK_DAYS` 控制日度推理上下文窗口（默认 30 天）。

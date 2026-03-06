@@ -61,6 +61,6 @@
 
   <rect x="690" y="112" width="138" height="28" rx="12" fill="#ebf6eb" stroke="#b5dfb5"/>
   <text x="702" y="131" fill="#1f7a1f" font-size="12" font-family="Arial, sans-serif" font-weight="700">
-    MarkdownV2 Safe
+    Telegram HTML Safe
   </text>
 </svg>

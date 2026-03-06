@@ -68,6 +68,7 @@ def _make_cfg(root: Path) -> AppConfig:
         outputs_root=outputs,
         models_root=models,
         qlib_data_root=qlib_data,
+        pages_site_base_url="https://example.com/llm_stock_report",
     )
 
 
@@ -162,7 +163,7 @@ class RunReportIntegrationTest(unittest.TestCase):
                     news_items=[],
                 )
 
-            post_calls: list[str] = []
+            post_calls: list[dict[str, str]] = []
 
             class FakeResp:
                 status_code = 200
@@ -172,7 +173,7 @@ class RunReportIntegrationTest(unittest.TestCase):
                     return {"ok": True}
 
             def fake_post(url, json, timeout):
-                post_calls.append(json["text"])
+                post_calls.append(json)
                 return FakeResp()
 
             with patch("app.jobs.run_report.load_config", return_value=cfg), \
@@ -189,11 +190,17 @@ class RunReportIntegrationTest(unittest.TestCase):
             self.assertEqual(0, code)
             self.assertGreaterEqual(len(post_calls), 2)
             # First message should be summary.
-            self.assertIn("日报摘要", post_calls[0])
+            self.assertEqual("HTML", post_calls[0]["parse_mode"])
+            self.assertIn("日报摘要", post_calls[0]["text"])
+            self.assertIn("<b>", post_calls[0]["text"])
+            self.assertIn("交易卡片", post_calls[0]["text"])
+            self.assertIn("https://example.com/llm_stock_report/zh/cases/us-2026-03-03.html", post_calls[0]["text"])
             # Later messages should contain symbol detail headers.
-            self.assertTrue(any("AAPL" in c or "MSFT" in c or "NVDA" in c for c in post_calls[1:]))
+            self.assertTrue(any("AAPL" in c["text"] or "MSFT" in c["text"] or "NVDA" in c["text"] for c in post_calls[1:]))
+            self.assertTrue(any("一句话" in c["text"] for c in post_calls[1:] if "MARKET" not in c["text"]))
+            self.assertTrue(any("https://example.com/llm_stock_report/zh/cases/us-2026-03-03.html" in c["text"] for c in post_calls[1:]))
             # Market overview should be appended after symbol details.
-            self.assertTrue(any("MARKET" in c for c in post_calls[1:]))
+            self.assertTrue(any("MARKET" in c["text"] for c in post_calls[1:]))
 
 
 if __name__ == "__main__":

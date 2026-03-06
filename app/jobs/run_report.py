@@ -25,8 +25,11 @@ from app.news.aggregator import build_stock_news_queries, search_news_with_fallb
 from app.report.market_overview import build_market_snapshot, market_news_query
 from app.report.renderer import (
     market_tag,
+    render_market_detail_telegram_card,
     render_market_detail_markdown,
+    render_summary_telegram_card,
     render_summary_markdown,
+    render_symbol_detail_telegram_card,
     render_symbol_detail_markdown,
     write_outputs,
 )
@@ -55,6 +58,14 @@ def _critical_failure_msg(exc: Exception, language: str) -> str:
     if _is_en(language):
         return f"Critical pipeline failure: {exc}"
     return f"关键链路失败: {exc}"
+
+
+def _build_case_pages_url(cfg: AppConfig, market: str, asof_date: str, language: str) -> str | None:
+    base_url = (cfg.pages_site_base_url or "").strip().rstrip("/")
+    if not base_url:
+        return None
+    lang = "en" if _is_en(language) else "zh"
+    return f"{base_url}/{lang}/cases/{market.lower()}-{asof_date}.html"
 
 
 def _load_symbols(cfg: AppConfig, market: str) -> list[str]:
@@ -252,9 +263,11 @@ def main() -> int:
 
         narratives: dict[str, StockNarrative] = {}
         detail_blocks: list[tuple[str, str]] = []
+        telegram_detail_blocks: list[tuple[str, str]] = []
 
         # Keep rank order.
         sorted_predictions: list[PredictionRecord] = sorted(predictions, key=lambda x: x.rank)
+        case_pages_url = _build_case_pages_url(cfg, market, asof_str, report_language)
 
         for pred in sorted_predictions:
             symbol = pred.symbol
@@ -304,15 +317,29 @@ def main() -> int:
                 continue
 
             narratives[symbol] = narrative
+            detail_markdown = render_symbol_detail_markdown(
+                market=market,
+                asof_date=asof_str,
+                prediction=pred,
+                narrative=narrative,
+                language=report_language,
+            )
             detail_blocks.append(
                 (
                     symbol,
-                    render_symbol_detail_markdown(
+                    detail_markdown,
+                )
+            )
+            telegram_detail_blocks.append(
+                (
+                    symbol,
+                    render_symbol_detail_telegram_card(
                         market=market,
                         asof_date=asof_str,
                         prediction=pred,
                         narrative=narrative,
                         language=report_language,
+                        pages_url=case_pages_url,
                     ),
                 )
             )
@@ -344,15 +371,29 @@ def main() -> int:
                 language=report_language,
             )
             market_summary_text = market_narrative.summary
+            market_detail_markdown = render_market_detail_markdown(
+                market=market,
+                asof_date=asof_str,
+                market_snapshot=market_snapshot,
+                narrative=market_narrative,
+                language=report_language,
+            )
             detail_blocks.append(
                 (
                     "MARKET",
-                    render_market_detail_markdown(
+                    market_detail_markdown,
+                )
+            )
+            telegram_detail_blocks.append(
+                (
+                    "MARKET",
+                    render_market_detail_telegram_card(
                         market=market,
                         asof_date=asof_str,
                         market_snapshot=market_snapshot,
                         narrative=market_narrative,
                         language=report_language,
+                        pages_url=case_pages_url,
                     ),
                 )
             )
@@ -371,6 +412,16 @@ def main() -> int:
             failed_symbols=failed_symbols,
             market_summary=market_summary_text,
             language=report_language,
+        )
+        summary_telegram = render_summary_telegram_card(
+            market=market,
+            asof_date=asof_str,
+            predictions=successful_predictions,
+            narratives=narratives,
+            failed_symbols=failed_symbols,
+            market_summary=market_summary_text,
+            language=report_language,
+            pages_url=case_pages_url,
         )
 
         details_md = "\n\n---\n\n".join([detail for _, detail in detail_blocks])
@@ -424,9 +475,9 @@ def main() -> int:
             )
             sender.send_report(
                 summary_title=_summary_title(market, asof_str, report_language),
-                summary_markdown=summary_md,
+                summary_content=summary_telegram,
                 market_tag=market_tag(market),
-                detail_blocks=detail_blocks,
+                detail_blocks=telegram_detail_blocks,
             )
 
         return 0 if status in {"success", "partial"} else 1

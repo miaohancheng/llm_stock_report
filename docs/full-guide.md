@@ -95,6 +95,7 @@ LLM 至少配置一组：
 - `OLLAMA_BASE_URL`
 - `LLM_PROVIDER`
 - `REPORT_LANGUAGE`（`zh` / `en`，默认 `zh`）
+- `PAGES_SITE_BASE_URL`（Telegram 卡片尾部追加 Pages 链接使用，例如 `https://miaohancheng.com/llm_stock_report`）
 - `PAGES_DEFAULT_LANGUAGE`（`zh` / `en`，默认 `zh`）
 - `PAGES_CASE_RETENTION_DAYS`（Pages 案例展示天数，默认 `3`）
 - `MAX_STOCKS_PER_RUN`
@@ -193,7 +194,10 @@ python -m app.jobs.run_report --market cn --date 2026-03-04 --no-telegram
 细节：
 - 单条消息默认最多 3500 字符
 - 超长自动切段并标注 `(i/n)`
-- Markdown 会做转义，降低格式报错概率
+- 本地文件仍保存为 Markdown；Telegram 发送前会转换为更稳定的 HTML 样式
+- 标题、强调与新闻链接会按 Telegram 兼容格式渲染，避免原始 Markdown 语法直接裸露
+- Telegram 文案会额外收敛成“卡片摘要”短句风格，弱化长段落推理
+- 若配置 `PAGES_SITE_BASE_URL`，卡片末尾会附带当日案例网页链接
 
 ## 9. GitHub Actions 自动化
 
@@ -241,6 +245,7 @@ python -m app.jobs.run_report --market cn --date 2026-03-04 --no-telegram
 - `OPENAI_MODEL`
 - `LLM_PROVIDER`（`openai` / `gemini` / `ollama`）
 - `REPORT_LANGUAGE`（`zh` / `en`，默认 `zh`）
+- `PAGES_SITE_BASE_URL`（用于 Telegram 卡片追加案例网页链接）
 - `PAGES_DEFAULT_LANGUAGE`（`zh` / `en`，默认 `zh`）
 - `PAGES_CASE_RETENTION_DAYS`（默认 `3`）
 - `GEMINI_MODEL`
@@ -276,6 +281,7 @@ python -m app.jobs.run_report --market cn --date 2026-03-04 --no-telegram
 - `LLM_RETRY_JITTER_SECONDS`：LLM 重试随机抖动秒数（默认 1）
 - `LLM_PROVIDER`：LLM 供应商（`openai` / `gemini` / `ollama`）
 - `REPORT_LANGUAGE`：报告与 Telegram 推送语言（`zh` / `en`）
+- `PAGES_SITE_BASE_URL`：Telegram 卡片追加案例网页链接使用的站点根地址
 - `PAGES_DEFAULT_LANGUAGE`：GitHub Pages 默认入口语言（`zh` / `en`）
 - `PAGES_CASE_RETENTION_DAYS`：GitHub Pages 案例页保留最近 N 天（默认 `3`）
 - `GEMINI_MODEL`：Gemini 模型名（默认 `gemini-2.0-flash`）
