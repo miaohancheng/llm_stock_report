@@ -97,9 +97,11 @@ Optional:
 - `LLM_PROVIDER`
 - `REPORT_LANGUAGE` (`zh` / `en`, default `zh`)
 - `PAGES_DEFAULT_LANGUAGE` (`zh` / `en`, default `zh`)
+- `PAGES_CASE_RETENTION_DAYS` (Pages case retention days, default `3`)
 - `MAX_STOCKS_PER_RUN`
 - `DETAIL_MESSAGE_CHAR_LIMIT`
 - `MODEL_EXPIRE_DAYS`
+- `DAILY_ANALYSIS_LOOKBACK_DAYS` (daily reasoning lookback window, default `30`)
 - `MARKET_INDEX_FETCH_ENABLED` (default `true`)
 - `STOCK_LIST_CN` / `STOCK_LIST_US` / `STOCK_LIST_HK`
 - `LLM_MAX_RETRIES`
@@ -241,10 +243,12 @@ Optional:
 - `LLM_PROVIDER` (`openai` / `gemini` / `ollama`)
 - `REPORT_LANGUAGE` (`zh` / `en`, default `zh`)
 - `PAGES_DEFAULT_LANGUAGE` (`zh` / `en`, default `zh`)
+- `PAGES_CASE_RETENTION_DAYS` (default `3`)
 - `GEMINI_MODEL`
 - `GEMINI_BASE_URL`
 - `OLLAMA_MODEL`
 - `OLLAMA_BASE_URL`
+- `DAILY_ANALYSIS_LOOKBACK_DAYS` (default `30`)
 - `LLM_MAX_RETRIES` (default `6`)
 - `LLM_RETRY_BASE_DELAY_SECONDS` (default `5`)
 - `LLM_RETRY_MAX_DELAY_SECONDS` (default `120`)
@@ -260,6 +264,7 @@ Retention: 14 days.
 ## 9.6 Training Window and Retry Knobs
 
 - `TRAINING_WINDOW_DAYS`: main training window (default `730`)
+- `DAILY_ANALYSIS_LOOKBACK_DAYS`: lookback context window for daily reasoning (default `30`)
 - `FEATURE_WARMUP_DAYS`: extra warmup days for indicators (default `60`)
 - `HISTORY_PRUNE_BUFFER_DAYS`: extra cache retention (default `60`)
 - `INCREMENTAL_OVERLAP_DAYS`: overlap days for incremental sync (default `7`)
@@ -274,6 +279,7 @@ Retention: 14 days.
 - `LLM_PROVIDER`: provider switch (`openai` / `gemini` / `ollama`)
 - `REPORT_LANGUAGE`: report and Telegram language (`zh` / `en`)
 - `PAGES_DEFAULT_LANGUAGE`: default landing language for GitHub Pages (`zh` / `en`)
+- `PAGES_CASE_RETENTION_DAYS`: GitHub Pages keeps latest N calendar days in cases (`3` by default)
 - `GEMINI_MODEL`: Gemini model name (default `gemini-2.0-flash`)
 - `OLLAMA_MODEL`: Ollama model name (default `qwen2.5:7b`)
 - `OLLAMA_BASE_URL`: Ollama base URL (default `http://127.0.0.1:11434`)

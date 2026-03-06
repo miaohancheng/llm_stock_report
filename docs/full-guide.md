@@ -96,9 +96,11 @@ LLM 至少配置一组：
 - `LLM_PROVIDER`
 - `REPORT_LANGUAGE`（`zh` / `en`，默认 `zh`）
 - `PAGES_DEFAULT_LANGUAGE`（`zh` / `en`，默认 `zh`）
+- `PAGES_CASE_RETENTION_DAYS`（Pages 案例展示天数，默认 `3`）
 - `MAX_STOCKS_PER_RUN`
 - `DETAIL_MESSAGE_CHAR_LIMIT`
 - `MODEL_EXPIRE_DAYS`
+- `DAILY_ANALYSIS_LOOKBACK_DAYS`（日度推理回看窗口，默认 `30`）
 - `STOCK_LIST_CN` / `STOCK_LIST_US` / `STOCK_LIST_HK`
 - `LLM_MAX_RETRIES`
 - `LLM_RETRY_BASE_DELAY_SECONDS`
@@ -240,6 +242,7 @@ python -m app.jobs.run_report --market cn --date 2026-03-04 --no-telegram
 - `LLM_PROVIDER`（`openai` / `gemini` / `ollama`）
 - `REPORT_LANGUAGE`（`zh` / `en`，默认 `zh`）
 - `PAGES_DEFAULT_LANGUAGE`（`zh` / `en`，默认 `zh`）
+- `PAGES_CASE_RETENTION_DAYS`（默认 `3`）
 - `GEMINI_MODEL`
 - `GEMINI_BASE_URL`
 - `OLLAMA_MODEL`
@@ -259,6 +262,7 @@ python -m app.jobs.run_report --market cn --date 2026-03-04 --no-telegram
 ## 9.6 训练窗口与重试参数（强烈建议了解）
 
 - `TRAINING_WINDOW_DAYS`：训练主窗口（默认 730 天）
+- `DAILY_ANALYSIS_LOOKBACK_DAYS`：日度分析给 LLM 的回看窗口（默认 30 天）
 - `FEATURE_WARMUP_DAYS`：特征预热窗口（默认 60 天）
 - `HISTORY_PRUNE_BUFFER_DAYS`：历史缓存额外保留天数（默认 60 天）
 - `INCREMENTAL_OVERLAP_DAYS`：增量拉取时与已有数据重叠天数（默认 7 天）
@@ -273,6 +277,7 @@ python -m app.jobs.run_report --market cn --date 2026-03-04 --no-telegram
 - `LLM_PROVIDER`：LLM 供应商（`openai` / `gemini` / `ollama`）
 - `REPORT_LANGUAGE`：报告与 Telegram 推送语言（`zh` / `en`）
 - `PAGES_DEFAULT_LANGUAGE`：GitHub Pages 默认入口语言（`zh` / `en`）
+- `PAGES_CASE_RETENTION_DAYS`：GitHub Pages 案例页保留最近 N 天（默认 `3`）
 - `GEMINI_MODEL`：Gemini 模型名（默认 `gemini-2.0-flash`）
 - `OLLAMA_MODEL`：Ollama 模型名（默认 `qwen2.5:7b`）
 - `OLLAMA_BASE_URL`：Ollama 地址（默认 `http://127.0.0.1:11434`）

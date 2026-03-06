@@ -114,6 +114,21 @@ def _load_cases_index(path: Path) -> list[dict]:
     return out
 
 
+def _filter_cases_recent_days(cases: list[dict], keep_days: int) -> list[dict]:
+    if keep_days <= 0:
+        return list(cases)
+    unique_dates: list[str] = []
+    seen: set[str] = set()
+    for item in cases:
+        day = str(item.get("date", "")).strip()
+        if not day or day in seen:
+            continue
+        seen.add(day)
+        unique_dates.append(day)
+    keep = set(unique_dates[:keep_days])
+    return [item for item in cases if str(item.get("date", "")).strip() in keep]
+
+
 def _page_template(
     *,
     title: str,
@@ -241,30 +256,96 @@ def _render_docs_index(lang: str) -> str:
             ("English Full Guide", "docs/guide.html"),
             ("GitHub Actions Setup (EN)", "docs/actions.html"),
         ]
+        nav_rows = [
+            ("How to Configure", "docs/actions.html", "Secrets, Variables, workflow schedule, rerun."),
+            ("Parameter Guide", "docs/guide.html", "Training/data window, retries, model settings."),
+            ("Daily Case Examples", "cases.html", "Open latest 3-day auto-generated case samples."),
+        ]
+        param_rows = [
+            ("DAILY_ANALYSIS_LOOKBACK_DAYS", "30", "Lookback window used in daily LLM reasoning."),
+            ("TRAINING_WINDOW_DAYS", "730", "Two-year training window for model retraining."),
+            ("MAX_STOCKS_PER_RUN", "30", "Hard cap of analyzed symbols per run."),
+            ("LLM_MAX_RETRIES", "6", "Retry count for LLM API HTTP failures."),
+            ("LLM_MAX_OUTPUT_TOKENS", "800", "Output length cap to reduce truncation."),
+            ("PAGES_CASE_RETENTION_DAYS", "3", "Only show latest N calendar days in Pages cases."),
+        ]
+        nav_title = "Usage Navigation"
+        nav_desc = "Start here for setup, parameters, and daily examples."
+        param_title = "Parameter Quick Reference"
     else:
         rows = [
             ("中文完整指南", "docs/guide.html"),
             ("GitHub Actions 配置（中文）", "docs/actions.html"),
         ]
+        nav_rows = [
+            ("怎么配置", "docs/actions.html", "Secrets、Variables、工作流定时与回跑。"),
+            ("参数说明", "docs/guide.html", "训练窗口、重试策略、模型参数。"),
+            ("每日用例示例", "cases.html", "查看最近3天自动生成案例。"),
+        ]
+        param_rows = [
+            ("DAILY_ANALYSIS_LOOKBACK_DAYS", "30", "日度LLM推理使用的回看窗口。"),
+            ("TRAINING_WINDOW_DAYS", "730", "模型重训默认两年窗口。"),
+            ("MAX_STOCKS_PER_RUN", "30", "单次分析股票上限。"),
+            ("LLM_MAX_RETRIES", "6", "LLM接口失败重试次数。"),
+            ("LLM_MAX_OUTPUT_TOKENS", "800", "限制输出长度，降低截断概率。"),
+            ("PAGES_CASE_RETENTION_DAYS", "3", "Pages只展示最近N天案例。"),
+        ]
+        nav_title = "使用导航"
+        nav_desc = "建议从这里进入：先配置，再看参数，再看每日示例。"
+        param_title = "参数速查"
 
     lines = [
         f"<h2>{s['docs_title']}</h2>",
         f"<p class='muted'>{s['docs_desc']}</p>",
+        f"<h3>{nav_title}</h3>",
+        f"<p class='muted'>{nav_desc}</p>",
         "<table>",
-        "<thead><tr><th>Document</th><th>Link</th></tr></thead>",
+        "<thead><tr><th>Topic</th><th>Description</th><th>Link</th></tr></thead>",
         "<tbody>",
     ]
+    for name, link, desc in nav_rows:
+        lines.append(
+            f"<tr><td>{html.escape(name)}</td><td>{html.escape(desc)}</td><td><a href='{link}'>{s['open']}</a></td></tr>"
+        )
+    lines.extend(
+        [
+            "</tbody>",
+            "</table>",
+            "<br/>",
+            "<table>",
+            "<thead><tr><th>Document</th><th>Link</th></tr></thead>",
+            "<tbody>",
+        ]
+    )
     for name, link in rows:
         lines.append(f"<tr><td>{html.escape(name)}</td><td><a href='{link}'>{s['open']}</a></td></tr>")
+    lines.extend(
+        [
+            "</tbody>",
+            "</table>",
+            f"<h3>{param_title}</h3>",
+            "<table>",
+            "<thead><tr><th>Key</th><th>Default</th><th>Description</th></tr></thead>",
+            "<tbody>",
+        ]
+    )
+    for key, default, desc in param_rows:
+        lines.append(
+            f"<tr><td><code>{html.escape(key)}</code></td><td>{html.escape(default)}</td><td>{html.escape(desc)}</td></tr>"
+        )
     lines.extend(["</tbody>", "</table>"])
     return "\n".join(lines)
 
 
-def _render_cases_index(lang: str, cases: list[dict]) -> str:
+def _render_cases_index(lang: str, cases: list[dict], retention_days: int) -> str:
     s = _i18n(lang)
     lines = [
         f"<h2>{s['cases_title']}</h2>",
         f"<p class='muted'>{s['cases_desc']}</p>",
+        (
+            f"<p class='muted'>{'Only latest ' if lang == 'en' else '仅展示最近'}"
+            f"{retention_days}{' days of case data.' if lang == 'en' else '天案例数据。'}</p>"
+        ),
         "<table>",
         (
             "<thead><tr>"
@@ -297,7 +378,7 @@ def _render_cases_index(lang: str, cases: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def _render_home(lang: str, cases: list[dict]) -> str:
+def _render_home(lang: str, cases: list[dict], retention_days: int) -> str:
     s = _i18n(lang)
     latest = cases[:10]
     items = []
@@ -310,6 +391,10 @@ def _render_home(lang: str, cases: list[dict]) -> str:
         [
             f"<h2>{s['home_title']}</h2>",
             f"<p>{s['home_intro']}</p>",
+            (
+                f"<p class='muted'>{'Cases page keeps only latest ' if lang == 'en' else '案例页仅保留最近'}"
+                f"{retention_days}{' days of examples.' if lang == 'en' else '天示例。'}</p>"
+            ),
             "<ol>",
             f"<li><strong>{s['nav_docs']}</strong>: {s['home_item_docs']}</li>",
             f"<li><strong>{s['nav_cases']}</strong>: {s['home_item_cases']}</li>",
@@ -320,10 +405,17 @@ def _render_home(lang: str, cases: list[dict]) -> str:
     )
 
 
-def build_site(project_root: Path, output_dir: Path, default_language: str = "zh") -> None:
+def build_site(
+    project_root: Path,
+    output_dir: Path,
+    default_language: str = "zh",
+    case_retention_days: int = 3,
+) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     default_lang = _normalize_lang(default_language)
-    cases_index = _load_cases_index(project_root / "pages_data" / "cases_index.json")
+    keep_days = max(1, int(case_retention_days))
+    cases_all = _load_cases_index(project_root / "pages_data" / "cases_index.json")
+    cases_index = _filter_cases_recent_days(cases_all, keep_days)
 
     _write_redirect(output_dir / "index.html", f"{default_lang}/index.html", "LLM Stock Report Pages")
     _write_redirect(output_dir / "docs.html", f"{default_lang}/docs.html", "LLM Stock Report Docs")
@@ -346,7 +438,7 @@ def build_site(project_root: Path, output_dir: Path, default_language: str = "zh
         _write_page(
             path=lang_root / "index.html",
             title="LLM Stock Report Pages",
-            body=_render_home(lang, cases_index),
+            body=_render_home(lang, cases_index, keep_days),
             active="home",
             lang=lang,
             root_prefix="../",
@@ -364,7 +456,7 @@ def build_site(project_root: Path, output_dir: Path, default_language: str = "zh
         _write_page(
             path=lang_root / "cases.html",
             title="Daily Cases",
-            body=_render_cases_index(lang, cases_index),
+            body=_render_cases_index(lang, cases_index, keep_days),
             active="cases",
             lang=lang,
             root_prefix="../",
@@ -407,6 +499,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--project-root", default=None)
     parser.add_argument("--output", default="site_dist")
     parser.add_argument("--default-language", default=None, help="zh or en")
+    parser.add_argument("--case-retention-days", default=None, help="Keep latest N days of case pages")
     return parser
 
 
@@ -415,9 +508,16 @@ def main() -> int:
     project_root = Path(args.project_root).resolve() if args.project_root else Path(__file__).resolve().parents[1]
     output_dir = (project_root / args.output).resolve()
     default_language = _normalize_lang(args.default_language or os.getenv("PAGES_DEFAULT_LANGUAGE", "zh"))
-    build_site(project_root=project_root, output_dir=output_dir, default_language=default_language)
+    case_retention_days = int(args.case_retention_days or os.getenv("PAGES_CASE_RETENTION_DAYS", "3"))
+    build_site(
+        project_root=project_root,
+        output_dir=output_dir,
+        default_language=default_language,
+        case_retention_days=case_retention_days,
+    )
     print(f"Built site at: {output_dir}")
     print(f"Default language: {default_language}")
+    print(f"Case retention days: {max(1, case_retention_days)}")
     return 0
 
 

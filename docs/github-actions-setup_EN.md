@@ -50,6 +50,7 @@ OPENAI_BASE_URL=https://api.openai.com/v1
 LLM_PROVIDER=openai
 REPORT_LANGUAGE=zh
 PAGES_DEFAULT_LANGUAGE=zh
+PAGES_CASE_RETENTION_DAYS=3
 GEMINI_MODEL=gemini-2.0-flash
 GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
 OLLAMA_BASE_URL=http://127.0.0.1:11434
@@ -61,6 +62,7 @@ MODEL_EXPIRE_DAYS=8
 MARKET_INDEX_FETCH_ENABLED=true
 
 TRAINING_WINDOW_DAYS=730
+DAILY_ANALYSIS_LOOKBACK_DAYS=30
 FEATURE_WARMUP_DAYS=60
 HISTORY_PRUNE_BUFFER_DAYS=60
 INCREMENTAL_OVERLAP_DAYS=7
@@ -87,6 +89,8 @@ Notes:
 - `STOCK_LIST_CN/US/HK` already override `config/universe.yaml` in workflows.
 - `REPORT_LANGUAGE` supports `zh` or `en` for Telegram/report output language.
 - `PAGES_DEFAULT_LANGUAGE` supports `zh` or `en` for default Pages entry route (`/zh/` or `/en/`).
+- `PAGES_CASE_RETENTION_DAYS` controls how many recent days are shown on Pages cases (default `3`).
+- `DAILY_ANALYSIS_LOOKBACK_DAYS` controls the lookback window for daily reasoning context (default `30`).
 - Use comma-separated values, no line breaks.
 - GitHub-hosted runners usually cannot reach your local `127.0.0.1:11434`; use Ollama on self-hosted runners if needed.
 - For OpenRouter free models, set `LLM_MAX_OUTPUT_TOKENS` to around `500-900`, and prefer non-`:free` models to reduce 429/timeout failures.

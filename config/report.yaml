@@ -6,6 +6,7 @@ model_expire_days: 8
 # stock_list_us: ["AAPL", "MSFT"]
 # stock_list_hk: ["HK00700", "HK03690"]
 training_window_days: 730
+daily_analysis_lookback_days: 30
 feature_warmup_days: 60
 history_prune_buffer_days: 60
 incremental_overlap_days: 7

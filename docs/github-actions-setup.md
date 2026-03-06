@@ -50,6 +50,7 @@ OPENAI_BASE_URL=https://api.openai.com/v1
 LLM_PROVIDER=openai
 REPORT_LANGUAGE=zh
 PAGES_DEFAULT_LANGUAGE=zh
+PAGES_CASE_RETENTION_DAYS=3
 GEMINI_MODEL=gemini-2.0-flash
 GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
 OLLAMA_BASE_URL=http://127.0.0.1:11434
@@ -61,6 +62,7 @@ MODEL_EXPIRE_DAYS=8
 MARKET_INDEX_FETCH_ENABLED=true
 
 TRAINING_WINDOW_DAYS=730
+DAILY_ANALYSIS_LOOKBACK_DAYS=30
 FEATURE_WARMUP_DAYS=60
 HISTORY_PRUNE_BUFFER_DAYS=60
 INCREMENTAL_OVERLAP_DAYS=7
@@ -87,6 +89,8 @@ STOCK_LIST_HK=HK00700,HK03690,HK09988
 - `STOCK_LIST_CN/US/HK` 已接入 workflow，会覆盖 `config/universe.yaml`。
 - `REPORT_LANGUAGE` 支持 `zh` 或 `en`，用于控制 Telegram 推送语言。
 - `PAGES_DEFAULT_LANGUAGE` 支持 `zh` 或 `en`，用于控制 Pages 默认入口（`/zh/` 或 `/en/`）。
+- `PAGES_CASE_RETENTION_DAYS` 控制 Pages 案例页展示最近 N 天（默认 3）。
+- `DAILY_ANALYSIS_LOOKBACK_DAYS` 控制日度推理上下文窗口（默认 30 天）。
 - 变量值用英文逗号分隔，不要换行。
 - GitHub Hosted Runner 通常无法访问你本地 `127.0.0.1:11434`，若要在 Actions 用 Ollama 建议 self-hosted runner。
 - 若使用 OpenRouter 免费模型，建议将 `LLM_MAX_OUTPUT_TOKENS` 设为 `500-900`，并优先使用非 `:free` 模型降低 429/timeout 失败率。

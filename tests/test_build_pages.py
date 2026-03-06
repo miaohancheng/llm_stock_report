@@ -20,8 +20,9 @@ class BuildPagesTest(unittest.TestCase):
             (root / "docs" / "full-guide_EN.md").write_text("# English Guide", encoding="utf-8")
             (root / "docs" / "github-actions-setup_EN.md").write_text("# English Actions", encoding="utf-8")
 
-            case_md = root / "pages_data" / "cases" / "cn" / "2026-03-05.md"
-            case_md.write_text("# Case\n\nexample", encoding="utf-8")
+            for day in ("2026-03-05", "2026-03-04", "2026-03-03", "2026-03-02"):
+                case_md = root / "pages_data" / "cases" / "cn" / f"{day}.md"
+                case_md.write_text(f"# Case {day}\n\nexample", encoding="utf-8")
             (root / "pages_data" / "cases_index.json").write_text(
                 json.dumps(
                     [
@@ -31,6 +32,39 @@ class BuildPagesTest(unittest.TestCase):
                             "date": "2026-03-05",
                             "title": "[CN] 2026-03-05 Daily Case",
                             "path": "cases/cn/2026-03-05.md",
+                            "summary_line": "example",
+                            "status": "success",
+                            "success_symbols": 3,
+                            "total_symbols": 3,
+                        },
+                        {
+                            "id": "cn-2026-03-04",
+                            "market": "cn",
+                            "date": "2026-03-04",
+                            "title": "[CN] 2026-03-04 Daily Case",
+                            "path": "cases/cn/2026-03-04.md",
+                            "summary_line": "example",
+                            "status": "success",
+                            "success_symbols": 3,
+                            "total_symbols": 3,
+                        },
+                        {
+                            "id": "cn-2026-03-03",
+                            "market": "cn",
+                            "date": "2026-03-03",
+                            "title": "[CN] 2026-03-03 Daily Case",
+                            "path": "cases/cn/2026-03-03.md",
+                            "summary_line": "example",
+                            "status": "success",
+                            "success_symbols": 3,
+                            "total_symbols": 3,
+                        },
+                        {
+                            "id": "cn-2026-03-02",
+                            "market": "cn",
+                            "date": "2026-03-02",
+                            "title": "[CN] 2026-03-02 Daily Case",
+                            "path": "cases/cn/2026-03-02.md",
                             "summary_line": "example",
                             "status": "success",
                             "success_symbols": 3,
@@ -51,11 +85,16 @@ class BuildPagesTest(unittest.TestCase):
             en_docs = (out / "en" / "docs.html").read_text(encoding="utf-8")
             self.assertIn("中文完整指南", zh_docs)
             self.assertIn("GitHub Actions 配置（中文）", zh_docs)
+            self.assertIn("参数速查", zh_docs)
             self.assertIn("English Full Guide", en_docs)
             self.assertIn("GitHub Actions Setup (EN)", en_docs)
+            self.assertIn("Parameter Quick Reference", en_docs)
 
             self.assertTrue((out / "zh" / "cases" / "cn-2026-03-05.html").exists())
             self.assertTrue((out / "en" / "cases" / "cn-2026-03-05.html").exists())
+            # Keep only latest 3 days by default.
+            self.assertTrue((out / "zh" / "cases" / "cn-2026-03-03.html").exists())
+            self.assertFalse((out / "zh" / "cases" / "cn-2026-03-02.html").exists())
 
 
 if __name__ == "__main__":

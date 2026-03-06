@@ -87,8 +87,10 @@ LLM 至少配置一组：
 - `LLM_PROVIDER`（`openai` / `gemini` / `ollama`）
 - `REPORT_LANGUAGE`（`zh` / `en`，控制 Telegram 推送与报告文本语言）
 - `PAGES_DEFAULT_LANGUAGE`（`zh` / `en`，控制 GitHub Pages 默认入口语言）
+- `PAGES_CASE_RETENTION_DAYS`（Pages 案例页仅展示最近 N 天，默认 3）
 - `STOCK_LIST_CN` / `STOCK_LIST_US` / `STOCK_LIST_HK`（环境变量覆盖股票池）
 - `TRAINING_WINDOW_DAYS`（训练窗口天数，默认 730）
+- `DAILY_ANALYSIS_LOOKBACK_DAYS`（日度推理回看窗口，默认 30）
 - `FEATURE_WARMUP_DAYS`（特征预热天数，默认 60）
 - `FETCH_MAX_RETRIES`（抓取最大重试次数，默认 5）
 - `FETCH_RETRY_BASE_DELAY_SECONDS`（重试基础间隔，默认 15 秒）
@@ -191,8 +193,10 @@ Configure at least one LLM path:
 - `LLM_PROVIDER` (`openai` / `gemini` / `ollama`)
 - `REPORT_LANGUAGE` (`zh` / `en`, controls Telegram/report language)
 - `PAGES_DEFAULT_LANGUAGE` (`zh` / `en`, controls default landing language for GitHub Pages)
+- `PAGES_CASE_RETENTION_DAYS` (show only latest N days in Pages cases, default `3`)
 - `STOCK_LIST_CN` / `STOCK_LIST_US` / `STOCK_LIST_HK` (env override for universe)
 - `TRAINING_WINDOW_DAYS` (default `730`)
+- `DAILY_ANALYSIS_LOOKBACK_DAYS` (lookback window for daily reasoning context, default `30`)
 - `FEATURE_WARMUP_DAYS` (default `60`)
 - `FETCH_MAX_RETRIES` (default `5`)
 - `FETCH_RETRY_BASE_DELAY_SECONDS` (default `15`)

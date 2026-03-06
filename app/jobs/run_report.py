@@ -119,6 +119,48 @@ def _resolve_model_bundle(
     return _train_bundle_from_feature_frame(cfg, market, asof_date, feature_frame)
 
 
+def _build_lookback_metrics(frame, lookback_days: int) -> dict[str, float]:
+    if frame is None or len(frame) < 2:
+        return {}
+    lookback = max(5, int(lookback_days))
+    recent = frame.sort_values("date").tail(lookback).copy()
+    if len(recent) < 2:
+        return {}
+
+    close = recent["close"].astype(float)
+    high = recent["high"].astype(float)
+    low = recent["low"].astype(float)
+    volume = recent["volume"].astype(float)
+
+    first_close = float(close.iloc[0])
+    last_close = float(close.iloc[-1])
+    ret_lb = (last_close / first_close - 1.0) if first_close else 0.0
+
+    low_min = float(low.min())
+    high_max = float(high.max())
+    range_lb = (high_max / low_min - 1.0) if low_min > 0 else 0.0
+
+    daily_ret = close.pct_change().dropna()
+    vol_lb = float(daily_ret.std() * (252**0.5)) if len(daily_ret) > 1 else 0.0
+
+    running_max = close.cummax()
+    drawdown_series = close / running_max - 1.0
+    mdd_lb = float(drawdown_series.min()) if len(drawdown_series) else 0.0
+
+    vol_avg = float(volume.mean())
+    vol_last = float(volume.iloc[-1])
+    vol_ratio_lb = (vol_last / vol_avg) if vol_avg > 0 else 1.0
+
+    return {
+        "lookback_days": float(len(recent)),
+        "ret_lb": ret_lb,
+        "range_lb": range_lb,
+        "vol_lb": vol_lb,
+        "mdd_lb": mdd_lb,
+        "vol_ratio_lb": vol_ratio_lb,
+    }
+
+
 def _send_failure_alert(cfg: AppConfig, market: str, asof_date: str, message: str) -> None:
     sender = TelegramSender(
         bot_token=cfg.telegram_bot_token or "",
@@ -231,6 +273,11 @@ def main() -> int:
                 "rsi14": float(feature_row["rsi14"]),
                 "macd": float(feature_row["macd"]),
             }
+            lookback_metrics = _build_lookback_metrics(
+                market_data.get(symbol),
+                cfg.daily_analysis_lookback_days,
+            )
+            feature_snapshot.update(lookback_metrics)
 
             queries = build_stock_news_queries(market=market, symbol=symbol)
             news_items, provider_used = search_news_with_fallback(

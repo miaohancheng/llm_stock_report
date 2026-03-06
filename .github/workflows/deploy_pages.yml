@@ -31,6 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PAGES_DEFAULT_LANGUAGE: ${{ vars.PAGES_DEFAULT_LANGUAGE || vars.REPORT_LANGUAGE || 'zh' }}
+      PAGES_CASE_RETENTION_DAYS: ${{ vars.PAGES_CASE_RETENTION_DAYS || '3' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -50,7 +51,7 @@ jobs:
 
       - name: Build static site
         run: |
-          python scripts/build_pages.py --output site_dist --default-language "$PAGES_DEFAULT_LANGUAGE"
+          python scripts/build_pages.py --output site_dist --default-language "$PAGES_DEFAULT_LANGUAGE" --case-retention-days "$PAGES_CASE_RETENTION_DAYS"
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

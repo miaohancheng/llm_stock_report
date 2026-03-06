@@ -121,6 +121,19 @@ def _market_breadth_comment(up: int, down: int, flat: int, language: str) -> str
 
 def _explain_feature_metric(key: str, value: float, language: str) -> str:
     if _is_en(language):
+        if key == "lookback_days":
+            return "Trading-day sample size used for extended context in daily reasoning."
+        if key == "ret_lb":
+            direction = "positive" if value > 0 else "negative" if value < 0 else "flat"
+            return f"Return over the configured lookback window; currently {direction}."
+        if key == "range_lb":
+            return "High-low price range over lookback window, measuring amplitude."
+        if key == "vol_lb":
+            return "Annualized realized volatility from lookback daily returns."
+        if key == "mdd_lb":
+            return "Maximum drawdown within lookback window."
+        if key == "vol_ratio_lb":
+            return "Latest volume divided by lookback average volume."
         if key == "ret_1":
             direction = "up on the day" if value > 0 else "down on the day" if value < 0 else "flat on the day"
             return f"1-day return for short-term movement; currently {direction}."
@@ -145,6 +158,19 @@ def _explain_feature_metric(key: str, value: float, language: str) -> str:
             state = "bullish momentum" if value > 0 else "bearish momentum" if value < 0 else "balanced momentum"
             return f"MACD trend momentum indicator; currently {state}."
         return "Technical indicator snapshot."
+    if key == "lookback_days":
+        return "用于日度推理扩展上下文的交易日样本数。"
+    if key == "ret_lb":
+        direction = "区间上涨" if value > 0 else "区间下跌" if value < 0 else "区间持平"
+        return f"配置窗口内累计收益率；当前{direction}。"
+    if key == "range_lb":
+        return "配置窗口内最高/最低价格振幅，用于衡量波动区间。"
+    if key == "vol_lb":
+        return "配置窗口日收益率年化波动率。"
+    if key == "mdd_lb":
+        return "配置窗口内最大回撤。"
+    if key == "vol_ratio_lb":
+        return "最新成交量相对窗口均量的比值。"
     if key == "ret_1":
         direction = "当日上涨" if value > 0 else "当日下跌" if value < 0 else "当日持平"
         return f"1日收益率，反映短线波动；当前{direction}。"
@@ -174,6 +200,12 @@ def _explain_feature_metric(key: str, value: float, language: str) -> str:
 def _feature_display_name(key: str, language: str) -> str:
     if _is_en(language):
         mapping = {
+            "lookback_days": "Lookback Window",
+            "ret_lb": "Lookback Return",
+            "range_lb": "Lookback Range",
+            "vol_lb": "Lookback Volatility",
+            "mdd_lb": "Lookback Max Drawdown",
+            "vol_ratio_lb": "Lookback Volume Ratio",
             "ret_1": "1D Return",
             "ret_5": "5D Return",
             "ma5_ratio": "MA5 Distance",
@@ -183,6 +215,12 @@ def _feature_display_name(key: str, language: str) -> str:
         }
     else:
         mapping = {
+            "lookback_days": "回看窗口",
+            "ret_lb": "窗口收益率",
+            "range_lb": "窗口振幅",
+            "vol_lb": "窗口波动率",
+            "mdd_lb": "窗口最大回撤",
+            "vol_ratio_lb": "窗口量比",
             "ret_1": "1日收益率",
             "ret_5": "5日收益率",
             "ma5_ratio": "MA5乖离率",

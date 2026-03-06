@@ -50,6 +50,7 @@ class AppConfig:
     llm_retry_max_delay_seconds: float = 120.0
     llm_retry_jitter_seconds: float = 1.0
     report_language: str = "zh"
+    daily_analysis_lookback_days: int = 30
 
 
 def _read_yaml(path: Path) -> dict[str, Any]:
@@ -161,6 +162,10 @@ def load_config(project_root: Path | None = None) -> AppConfig:
         "LLM_RETRY_JITTER_SECONDS",
         float(report_cfg.get("llm_retry_jitter_seconds", 1.0)),
     )
+    daily_analysis_lookback_days = _env_int(
+        "DAILY_ANALYSIS_LOOKBACK_DAYS",
+        int(report_cfg.get("daily_analysis_lookback_days", 30)),
+    )
     market_index_fetch_enabled = _env_bool(
         "MARKET_INDEX_FETCH_ENABLED",
         bool(report_cfg.get("market_index_fetch_enabled", True)),
@@ -229,6 +234,7 @@ def load_config(project_root: Path | None = None) -> AppConfig:
         llm_retry_max_delay_seconds=llm_retry_max_delay_seconds,
         llm_retry_jitter_seconds=llm_retry_jitter_seconds,
         report_language=report_language,
+        daily_analysis_lookback_days=max(5, daily_analysis_lookback_days),
     )
 
 
