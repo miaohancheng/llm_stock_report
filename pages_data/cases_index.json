@@ -1,5 +1,17 @@
 [
   {
+    "id": "us-2026-03-07",
+    "market": "us",
+    "date": "2026-03-07",
+    "title": "[US] 2026-03-07 Daily Case",
+    "path": "cases/us/2026-03-07.md",
+    "summary_line": "> [US] 共分析 3 只股票 | 🟢买入:0 🟡观望:3 🟠减仓:0 🔴卖出:0",
+    "status": "success",
+    "success_symbols": 3,
+    "total_symbols": 3,
+    "updated_at": "2026-03-06T23:52:42+00:00"
+  },
+  {
     "id": "us-2026-03-06",
     "market": "us",
     "date": "2026-03-06",
@@ -10,6 +22,30 @@
     "success_symbols": 3,
     "total_symbols": 3,
     "updated_at": "2026-03-06T00:06:34+00:00"
+  },
+  {
+    "id": "hk-2026-03-06",
+    "market": "hk",
+    "date": "2026-03-06",
+    "title": "[HK] 2026-03-06 Daily Case",
+    "path": "cases/hk/2026-03-06.md",
+    "summary_line": "> [HK] 共分析 4 只股票 | 🟢买入:0 🟡观望:4 🟠减仓:0 🔴卖出:0",
+    "status": "success",
+    "success_symbols": 4,
+    "total_symbols": 4,
+    "updated_at": "2026-03-06T10:08:10+00:00"
+  },
+  {
+    "id": "cn-2026-03-06",
+    "market": "cn",
+    "date": "2026-03-06",
+    "title": "[CN] 2026-03-06 Daily Case",
+    "path": "cases/cn/2026-03-06.md",
+    "summary_line": "> [CN] 共分析 1 只股票 | 🟢买入:0 🟡观望:1 🟠减仓:0 🔴卖出:0",
+    "status": "success",
+    "success_symbols": 1,
+    "total_symbols": 1,
+    "updated_at": "2026-03-06T08:46:56+00:00"
   },
   {
     "id": "us-2026-03-05",
@@ -29,11 +65,11 @@
     "date": "2026-03-05",
     "title": "[HK] 2026-03-05 Daily Case",
     "path": "cases/hk/2026-03-05.md",
-    "summary_line": "> [HK] 共分析 2 只股票 | 🟢买入:0 🟡观望:2 🟠减仓:0 🔴卖出:0",
-    "status": "partial",
-    "success_symbols": 2,
+    "summary_line": "> [HK] 共分析 4 只股票 | 🟢买入:0 🟡观望:4 🟠减仓:0 🔴卖出:0",
+    "status": "success",
+    "success_symbols": 4,
     "total_symbols": 4,
-    "updated_at": "2026-03-05T10:17:45+00:00"
+    "updated_at": "2026-03-06T06:21:19+00:00"
   },
   {
     "id": "cn-2026-03-05",
