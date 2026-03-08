@@ -18,6 +18,10 @@ class ModelBundle:
     trained_at: str
     data_window_start: str
     data_window_end: str
+    fallback_used: bool = False
+    fallback_reason: str | None = None
+    train_rows: int = 0
+    symbol_count: int = 0
 
 
 def git_sha_short(project_root: Path) -> str:
@@ -74,6 +78,10 @@ def _load_bundle_from_dir(path: Path) -> ModelBundle:
         trained_at=str(metadata["trained_at"]),
         data_window_start=str(metadata["data_window_start"]),
         data_window_end=str(metadata["data_window_end"]),
+        fallback_used=bool(metadata.get("fallback_used", False)),
+        fallback_reason=metadata.get("fallback_reason"),
+        train_rows=int(metadata.get("train_rows", 0) or 0),
+        symbol_count=int(metadata.get("symbol_count", 0) or 0),
     )
 
 

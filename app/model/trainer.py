@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 import numpy as np
@@ -49,6 +49,33 @@ def _train_with_linear_fallback(train_frame: pd.DataFrame) -> tuple[object, str]
     return LinearFallbackModel(coef), "linear-fallback"
 
 
+def _bundle_with_metadata(
+    *,
+    model: object,
+    engine: str,
+    model_version: str,
+    data_window_start: str,
+    data_window_end: str,
+    train_frame: pd.DataFrame,
+    fallback_used: bool,
+    fallback_reason: str | None,
+) -> ModelBundle:
+    symbol_count = int(train_frame["symbol"].nunique()) if "symbol" in train_frame.columns else 0
+    return ModelBundle(
+        model=model,
+        feature_columns=list(FEATURE_COLUMNS),
+        model_version=model_version,
+        engine=engine,
+        trained_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        data_window_start=data_window_start,
+        data_window_end=data_window_end,
+        fallback_used=fallback_used,
+        fallback_reason=fallback_reason,
+        train_rows=int(len(train_frame)),
+        symbol_count=symbol_count,
+    )
+
+
 def train_market_model(
     train_frame: pd.DataFrame,
     model_version: str,
@@ -68,33 +95,42 @@ def train_market_model(
             symbol_count,
         )
         model, engine = _train_with_linear_fallback(train_frame)
-        return ModelBundle(
+        return _bundle_with_metadata(
             model=model,
-            feature_columns=list(FEATURE_COLUMNS),
-            model_version=model_version,
             engine=f"{engine}-small-universe",
-            trained_at=datetime.utcnow().isoformat(timespec="seconds"),
+            model_version=model_version,
             data_window_start=data_window_start,
             data_window_end=data_window_end,
+            train_frame=train_frame,
+            fallback_used=True,
+            fallback_reason="small-universe",
         )
 
     model: object
     engine: str
     try:
-        # We keep this import to align with expected Qlib runtime environments.
-        # When unavailable, the pipeline falls back to a deterministic local model.
-        import qlib  # noqa: F401
         model, engine = _train_with_lightgbm(train_frame)
     except Exception as exc:
-        logger.warning("Qlib/LightGBM training path unavailable, fallback model used: %s", exc)
+        logger.warning("LightGBM training path unavailable, fallback model used: %s", exc)
         model, engine = _train_with_linear_fallback(train_frame)
+        return _bundle_with_metadata(
+            model=model,
+            engine=engine,
+            model_version=model_version,
+            data_window_start=data_window_start,
+            data_window_end=data_window_end,
+            train_frame=train_frame,
+            fallback_used=True,
+            fallback_reason=f"lightgbm-unavailable: {exc}",
+        )
 
-    return ModelBundle(
+    return _bundle_with_metadata(
         model=model,
-        feature_columns=list(FEATURE_COLUMNS),
-        model_version=model_version,
         engine=engine,
-        trained_at=datetime.utcnow().isoformat(timespec="seconds"),
+        model_version=model_version,
         data_window_start=data_window_start,
         data_window_end=data_window_end,
+        train_frame=train_frame,
+        fallback_used=False,
+        fallback_reason=None,
     )

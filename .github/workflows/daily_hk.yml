@@ -72,7 +72,16 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          python -m pip install -e '.[dev]'
+
+      - name: Run smoke tests
+        run: |
+          python -m pytest \
+            tests/test_splitter.py \
+            tests/test_report_language.py \
+            tests/test_run_report_integration.py \
+            tests/test_build_pages.py \
+            tests/test_export_case.py
 
       - name: Run HK report
         run: |
@@ -83,15 +92,19 @@ jobs:
           echo "RUN_DATE=$RUN_DATE" >> "$GITHUB_ENV"
           python -m app.jobs.run_report --market hk --date "$RUN_DATE"
 
+      - name: Validate report outputs
+        run: |
+          test -f "outputs/hk/${RUN_DATE}/summary.md"
+          test -f "outputs/hk/${RUN_DATE}/details.md"
+          test -f "outputs/hk/${RUN_DATE}/run_meta.json"
+
       - name: Export case for Pages
-        if: always()
-        continue-on-error: true
+        if: success()
         run: |
           python -m app.jobs.export_case --market hk --date "$RUN_DATE"
 
       - name: Commit Pages case data
-        if: always()
-        continue-on-error: true
+        if: success()
         run: |
           if [ -n "$(git status --porcelain pages_data)" ]; then
             git config user.name "github-actions[bot]"

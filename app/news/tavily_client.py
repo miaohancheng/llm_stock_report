@@ -3,8 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Iterable
 
-import requests
-
+from app.common.http_retry import request_with_retry
 from app.common.schemas import NewsItem
 
 logger = logging.getLogger(__name__)
@@ -24,8 +23,13 @@ def search_tavily(api_key: str, query: str, max_results: int = 5) -> list[NewsIt
         "include_images": False,
         "include_raw_content": False,
     }
-    response = requests.post(url, json=payload, timeout=20)
-    response.raise_for_status()
+    response = request_with_retry(
+        method="POST",
+        url=url,
+        provider_name="tavily",
+        timeout_seconds=20,
+        json=payload,
+    )
     data = response.json()
 
     results: Iterable[dict] = data.get("results", [])

@@ -6,6 +6,7 @@
 
 - 你已将仓库推送到 GitHub。
 - 仓库中包含以下 workflow 文件：
+  - `.github/workflows/ci.yml`
   - `.github/workflows/daily_cn.yml`
   - `.github/workflows/daily_hk.yml`
   - `.github/workflows/daily_us.yml`
@@ -106,6 +107,8 @@ STOCK_LIST_HK=HK00700,HK03690,HK09988
 - `weekly_retrain.yml`
 
 因此代码中 `os.getenv(...)` 可以直接读取到配置。
+`ci.yml` 只负责安装项目并执行 `python -m pytest`，不依赖这组运行时变量。
+另外，生产 workflow 会先执行固定 smoke tests，再进入正式日报/重训练步骤。
 
 ## 5.1 交易日自动调度确认
 

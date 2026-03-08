@@ -23,6 +23,7 @@ dependencies = [
 qlib = ["pyqlib>=0.9.5"]
 dev = [
   "pytest>=8.2.0",
+  "markdown>=3.6",
 ]
 
 [tool.setuptools]

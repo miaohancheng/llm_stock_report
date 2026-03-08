@@ -73,6 +73,9 @@ class RunMeta:
     search_provider_fallback: str
     start_time: str
     end_time: str
+    model_engine: str = ""
+    model_fallback_used: bool = False
+    model_warning: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

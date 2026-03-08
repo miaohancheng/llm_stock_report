@@ -6,6 +6,7 @@ This document explains how to configure Actions, Secrets (keys), and Variables f
 
 - The repository is pushed to GitHub.
 - Workflow files exist:
+  - `.github/workflows/ci.yml`
   - `.github/workflows/daily_cn.yml`
   - `.github/workflows/daily_hk.yml`
   - `.github/workflows/daily_us.yml`
@@ -106,6 +107,8 @@ These workflows already inject the variables/secrets into runtime env:
 - `weekly_retrain.yml`
 
 So application code can read them via `os.getenv(...)`.
+`ci.yml` only installs the project and runs `python -m pytest`; it does not depend on the runtime variable set above.
+Production workflows also run a fixed smoke-test suite before the actual report / retrain steps.
 
 ## 5.1 Trading-day schedule confirmation
 

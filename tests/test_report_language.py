@@ -134,6 +134,7 @@ class ReportLanguageTest(unittest.TestCase):
             market_summary="科技股分化，风险偏好没有同步扩散。",
             language="zh",
             pages_url="https://example.com/site/zh/cases/us-2026-03-05.html",
+            model_warning="当前使用降级模型（linear-fallback）。原因：small-universe。",
         )
         self.assertIn("交易卡片", card)
         self.assertIn("最强信号", card)
@@ -141,6 +142,7 @@ class ReportLanguageTest(unittest.TestCase):
         self.assertIn("关注名单", card)
         self.assertIn("跳过", card)
         self.assertIn("查看完整报告", card)
+        self.assertIn("模型提醒", card)
 
     def test_symbol_telegram_card_is_compact(self) -> None:
         pred = PredictionRecord(

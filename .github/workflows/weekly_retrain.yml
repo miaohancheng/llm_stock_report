@@ -65,7 +65,16 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          python -m pip install -e '.[dev]'
+
+      - name: Run smoke tests
+        run: |
+          python -m pytest \
+            tests/test_splitter.py \
+            tests/test_report_language.py \
+            tests/test_run_report_integration.py \
+            tests/test_build_pages.py \
+            tests/test_export_case.py
 
       - name: Retrain model
         run: |

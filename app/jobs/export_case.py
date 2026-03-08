@@ -71,10 +71,15 @@ def export_case(project_root: Path, market: str, run_date: str) -> Path:
         f"- run_id: `{run_meta.get('run_id', '')}`",
         f"- status: `{run_meta.get('status', '')}`",
         f"- model_version: `{run_meta.get('model_version', '')}`",
+        f"- model_engine: `{run_meta.get('model_engine', '')}`",
         f"- llm_model: `{run_meta.get('llm_model', '')}`",
         f"- symbols: {run_meta.get('success_symbols', 0)}/{run_meta.get('total_symbols', 0)} (success/total)",
         f"- failed_symbols: {run_meta.get('failed_symbols', 0)}",
     ]
+    if run_meta.get("model_fallback_used"):
+        meta_lines.append(f"- model_fallback_used: `{run_meta.get('model_fallback_used')}`")
+    if run_meta.get("model_warning"):
+        meta_lines.append(f"- model_warning: {run_meta.get('model_warning')}")
     if predictions_path.exists():
         meta_lines.append(f"- predictions_file: `{predictions_path.name}`")
 

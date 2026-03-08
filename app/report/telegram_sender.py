@@ -4,8 +4,7 @@ from html import escape
 import logging
 from typing import Iterable
 
-import requests
-
+from app.common.http_retry import HTTPRetryError, request_with_retry
 from app.report.splitter import render_telegram_html, split_markdown_for_telegram_html
 
 logger = logging.getLogger(__name__)
@@ -39,11 +38,22 @@ class TelegramSender:
         if self.message_thread_id:
             payload["message_thread_id"] = self.message_thread_id
 
-        response = requests.post(url, json=payload, timeout=20)
-        if response.status_code >= 400:
-            raise RuntimeError(f"Telegram send failed: HTTP {response.status_code} {response.text[:200]}")
+        try:
+            response = request_with_retry(
+                method="POST",
+                url=url,
+                provider_name="telegram",
+                timeout_seconds=20,
+                json=payload,
+            )
+        except HTTPRetryError as exc:
+            status_text = f"HTTP {exc.status_code} " if exc.status_code is not None else ""
+            raise RuntimeError(f"Telegram send failed: {status_text}{exc.detail[:200]}".strip()) from exc
 
-        data = response.json()
+        try:
+            data = response.json()
+        except Exception as exc:
+            raise RuntimeError(f"Telegram send failed: invalid JSON response: {exc}") from exc
         if not data.get("ok"):
             raise RuntimeError(f"Telegram send failed: {data}")
 

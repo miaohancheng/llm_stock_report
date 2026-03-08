@@ -119,6 +119,12 @@ def search_news_with_fallback(
 
     if all_items:
         provider_label = "+".join(list(dict.fromkeys(providers))) if providers else "none"
+        logger.info(
+            "Search succeeded provider=%s queries=%d items=%d",
+            provider_label,
+            len(queries),
+            len(all_items),
+        )
         return all_items, provider_label
 
     if errors:

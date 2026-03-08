@@ -25,6 +25,10 @@ class ModelRegistryTest(unittest.TestCase):
                 trained_at="2026-03-01T10:00:00",
                 data_window_start="2024-03-01",
                 data_window_end="2026-03-03",
+                fallback_used=True,
+                fallback_reason="small-universe",
+                train_rows=128,
+                symbol_count=2,
             )
             save_model_bundle(root, "cn", bundle)
 
@@ -32,6 +36,10 @@ class ModelRegistryTest(unittest.TestCase):
             self.assertIsNotNone(loaded)
             assert loaded is not None
             self.assertEqual(bundle.model_version, loaded.model_version)
+            self.assertTrue(loaded.fallback_used)
+            self.assertEqual("small-universe", loaded.fallback_reason)
+            self.assertEqual(128, loaded.train_rows)
+            self.assertEqual(2, loaded.symbol_count)
             self.assertFalse(model_is_expired(loaded, date(2026, 3, 3), expire_days=8))
             self.assertTrue(model_is_expired(loaded, date(2026, 3, 20), expire_days=8))
 

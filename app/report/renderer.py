@@ -274,6 +274,14 @@ def _telegram_pages_link_lines(pages_url: str | None, language: str) -> list[str
     return ["- 网页版: [查看完整报告](%s)" % pages_url]
 
 
+def _telegram_warning_line(model_warning: str | None, language: str) -> str | None:
+    if not model_warning:
+        return None
+    if _is_en(language):
+        return f"- Warning: {_compact_text(model_warning, 120)}"
+    return f"- 模型提醒: {_compact_text(model_warning, 120)}"
+
+
 def _summary_focus_line(
     prediction: PredictionRecord,
     narrative: StockNarrative | None,
@@ -298,6 +306,7 @@ def render_summary_telegram_card(
     market_summary: str | None = None,
     language: str = "zh",
     pages_url: str | None = None,
+    model_warning: str | None = None,
 ) -> str:
     language = (language or "zh").strip().lower()
     tag = market_tag(market)
@@ -335,6 +344,9 @@ def render_summary_telegram_card(
             if _is_en(language)
             else f"- 大盘一句话: {_compact_text(market_summary, 110)}"
         )
+    warning_line = _telegram_warning_line(model_warning, language)
+    if warning_line:
+        lines.append(warning_line)
 
     if focus_predictions:
         best = focus_predictions[0]

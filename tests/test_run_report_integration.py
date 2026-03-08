@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, timedelta
+import json
 from pathlib import Path
 import tempfile
 import unittest
@@ -126,6 +127,9 @@ class RunReportIntegrationTest(unittest.TestCase):
             self.assertTrue((output_dir / "run_meta.json").exists())
             details_text = (output_dir / "details.md").read_text(encoding="utf-8")
             self.assertIn("大盘复盘", details_text)
+            run_meta = json.loads((output_dir / "run_meta.json").read_text(encoding="utf-8"))
+            self.assertEqual("qlib-lightgbm", run_meta["model_engine"])
+            self.assertFalse(run_meta["model_fallback_used"])
 
     def test_us_report_telegram_sequence(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -136,10 +140,14 @@ class RunReportIntegrationTest(unittest.TestCase):
                 model=DummyPredictor(),
                 feature_columns=list(FEATURE_COLUMNS),
                 model_version="us_20260303_test",
-                engine="qlib-lightgbm",
+                engine="linear-fallback-small-universe",
                 trained_at="2026-03-03T10:00:00",
                 data_window_start="2024-03-03",
                 data_window_end="2026-03-03",
+                fallback_used=True,
+                fallback_reason="small-universe",
+                train_rows=80,
+                symbol_count=2,
             )
 
             def fake_narrative(**kwargs):
@@ -172,8 +180,8 @@ class RunReportIntegrationTest(unittest.TestCase):
                 def json():
                     return {"ok": True}
 
-            def fake_post(url, json, timeout):
-                post_calls.append(json)
+            def fake_request(method, url, timeout, **kwargs):
+                post_calls.append(kwargs["json"])
                 return FakeResp()
 
             with patch("app.jobs.run_report.load_config", return_value=cfg), \
@@ -183,7 +191,8 @@ class RunReportIntegrationTest(unittest.TestCase):
                 patch("app.jobs.run_report.search_news_with_fallback", return_value=([], "brave")), \
                 patch("app.jobs.run_report.generate_stock_narrative", side_effect=fake_narrative), \
                 patch("app.jobs.run_report.generate_market_narrative", side_effect=fake_market_narrative), \
-                patch("app.report.telegram_sender.requests.post", side_effect=fake_post):
+                patch("app.common.http_retry.requests.request", side_effect=fake_request), \
+                patch("app.common.http_retry.time.sleep", return_value=None):
                 with patch("sys.argv", ["run_report", "--market", "us", "--date", "2026-03-03"]):
                     code = run_report.main()
 
@@ -195,6 +204,7 @@ class RunReportIntegrationTest(unittest.TestCase):
             self.assertIn("<b>", post_calls[0]["text"])
             self.assertIn("交易卡片", post_calls[0]["text"])
             self.assertIn("https://example.com/llm_stock_report/zh/cases/us-2026-03-03.html", post_calls[0]["text"])
+            self.assertIn("模型提醒", post_calls[0]["text"])
             # Later messages should contain symbol detail headers.
             self.assertTrue(any("AAPL" in c["text"] or "MSFT" in c["text"] or "NVDA" in c["text"] for c in post_calls[1:]))
             self.assertTrue(any("一句话" in c["text"] for c in post_calls[1:] if "MARKET" not in c["text"]))

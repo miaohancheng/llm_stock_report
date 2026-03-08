@@ -68,7 +68,17 @@ models/{market}/{model_version}/
 ## 4.2 Install
 ```bash
 python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+python -m pip install -e '.[dev]'
+```
+If you also need the optional `pyqlib` dependency set, run:
+```bash
+python -m pip install -e '.[qlib]'
+```
+
+## 4.2.1 Test Entry
+The official test command is:
+```bash
+python -m pytest
 ```
 
 ## 4.3 Environment Variables
@@ -185,6 +195,9 @@ python -m app.jobs.run_report --market cn --date 2026-03-04 --no-telegram
 - `search_provider_fallback`
 - `start_time`
 - `end_time`
+- `model_engine`
+- `model_fallback_used`
+- `model_warning`
 
 ## 8. Telegram Protocol
 
@@ -204,6 +217,7 @@ Behavior:
 ## 9. GitHub Actions
 
 ## 9.1 Workflow files
+- `.github/workflows/ci.yml`
 - `.github/workflows/daily_cn.yml`
 - `.github/workflows/daily_hk.yml`
 - `.github/workflows/daily_us.yml`
@@ -215,6 +229,8 @@ Behavior:
 - `daily_hk.yml`: `30 9 * * 1-5` (17:30 Asia/Shanghai weekdays)
 - `daily_us.yml`: `30 23 * * 1-5` (07:30 Asia/Shanghai next day)
 - These are automatic runs for each trading-day window: CN/HK on Asia/Shanghai weekdays, US on Asia/Shanghai Tue-Sat morning.
+- `ci.yml`: runs full `python -m pytest` on `push` / `pull_request`
+- Daily report and retrain workflows run a fixed smoke-test suite before the main job.
 - `weekly_retrain.yml`: scheduled Sunday retraining
 - On GitHub-hosted runners, local Ollama is not reachable by default; use Ollama locally or on self-hosted runners.
 - `deploy_pages.yml`: auto-publishes GitHub Pages when `docs/**` or `pages_data/**` changes (docs + daily cases)

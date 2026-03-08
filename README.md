@@ -53,19 +53,28 @@ flowchart LR
 ### 快速开始
 1. 安装依赖
 ```bash
-python -m pip install -r requirements.txt
+python -m pip install --upgrade pip
+python -m pip install -e '.[dev]'
+```
+如需额外安装 `pyqlib` 相关依赖，再执行：
+```bash
+python -m pip install -e '.[qlib]'
 ```
 2. 配置股票池
 - 编辑 `config/universe.yaml`
 3. 配置环境变量
 - 复制 `.env.example` 到 `.env` 并填写密钥
-4. 手动训练
+4. 运行测试
+```bash
+python -m pytest
+```
+5. 手动训练
 ```bash
 python -m app.jobs.run_retrain --market cn --date 2026-03-04
 python -m app.jobs.run_retrain --market us --date 2026-03-04
 python -m app.jobs.run_retrain --market hk --date 2026-03-04
 ```
-5. 生成日报
+6. 生成日报
 ```bash
 python -m app.jobs.run_report --market cn --date 2026-03-04
 python -m app.jobs.run_report --market us --date 2026-03-04
@@ -105,11 +114,13 @@ LLM 至少配置一组：
 - `OLLAMA_BASE_URL`（默认 `http://127.0.0.1:11434`）
 
 ### GitHub Actions
+- `ci.yml`：`push` / `pull_request` 运行全量 `python -m pytest`
 - `daily_cn.yml`：UTC `0 8 * * 1-5`（北京时间工作日 16:00）
 - `daily_hk.yml`：UTC `30 9 * * 1-5`（北京时间工作日 17:30）
 - `daily_us.yml`：UTC `30 23 * * 1-5`（北京时间次日 07:30）
 - `deploy_pages.yml`：自动发布 GitHub Pages（详细文档 + 每日案例）
 - 以上定时均为自动运行；CN/HK 在北京时间工作日触发，US 在北京时间周二到周六早晨触发（覆盖美股前一交易日）
+- 日报与周训 workflow 会先执行固定 smoke tests，再进入正式任务
 - GitHub Hosted Runner 默认无法访问你本机 Ollama；Ollama 仅建议本地运行或 self-hosted runner 使用
 - `weekly_retrain.yml`：每周重训 CN/US/HK
 
@@ -131,6 +142,7 @@ LLM 至少配置一组：
 - `details.md`
 - `predictions.csv`
 - `run_meta.json`
+- `run_meta.json` 会显式记录 `model_engine` / `model_fallback_used` / `model_warning`
 - `details.md` 末尾附加当日大盘复盘（CN/US/HK）
 
 ### 文档
@@ -160,19 +172,28 @@ LLM 至少配置一组：
 ### Quick Start
 1. Install dependencies
 ```bash
-python -m pip install -r requirements.txt
+python -m pip install --upgrade pip
+python -m pip install -e '.[dev]'
+```
+If you also need the optional `pyqlib` environment, run:
+```bash
+python -m pip install -e '.[qlib]'
 ```
 2. Configure symbol universe
 - Edit `config/universe.yaml`
 3. Configure env vars
 - Copy `.env.example` to `.env` and fill secrets
-4. Retrain models
+4. Run tests
+```bash
+python -m pytest
+```
+5. Retrain models
 ```bash
 python -m app.jobs.run_retrain --market cn --date 2026-03-04
 python -m app.jobs.run_retrain --market us --date 2026-03-04
 python -m app.jobs.run_retrain --market hk --date 2026-03-04
 ```
-5. Run daily reports
+6. Run daily reports
 ```bash
 python -m app.jobs.run_report --market cn --date 2026-03-04
 python -m app.jobs.run_report --market us --date 2026-03-04
@@ -212,11 +233,13 @@ Configure at least one LLM path:
 - `OLLAMA_BASE_URL` (default `http://127.0.0.1:11434`)
 
 ### GitHub Actions
+- `ci.yml`: runs full `python -m pytest` on `push` / `pull_request`
 - `daily_cn.yml`: UTC `0 8 * * 1-5` (16:00 Asia/Shanghai on weekdays)
 - `daily_hk.yml`: UTC `30 9 * * 1-5` (17:30 Asia/Shanghai on weekdays)
 - `daily_us.yml`: UTC `30 23 * * 1-5` (07:30 Asia/Shanghai next day)
 - `deploy_pages.yml`: auto-publish GitHub Pages (detailed docs + daily cases)
 - All schedules run automatically every trading day window: CN/HK on Asia/Shanghai weekdays, US on Asia/Shanghai Tue-Sat morning.
+- Daily report / weekly retrain workflows run a fixed smoke-test suite before the main job.
 - GitHub-hosted runners cannot access your local Ollama by default; use Ollama locally or on self-hosted runners.
 - `weekly_retrain.yml`: weekly retraining for CN/US/HK models
 
@@ -238,6 +261,7 @@ Configure at least one LLM path:
 - `details.md`
 - `predictions.csv`
 - `run_meta.json`
+- `run_meta.json` explicitly records `model_engine` / `model_fallback_used` / `model_warning`
 - market overview is appended at the end of `details.md`
 
 ### Documentation

@@ -67,7 +67,17 @@ models/{market}/{model_version}/
 ## 4.2 安装依赖
 ```bash
 python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
+python -m pip install -e '.[dev]'
+```
+若需要额外安装可选 `pyqlib` 依赖，再执行：
+```bash
+python -m pip install -e '.[qlib]'
+```
+
+## 4.2.1 测试入口
+官方测试入口固定为：
+```bash
+python -m pytest
 ```
 
 ## 4.3 配置环境变量
@@ -183,6 +193,9 @@ python -m app.jobs.run_report --market cn --date 2026-03-04 --no-telegram
 - `search_provider_fallback`
 - `start_time`
 - `end_time`
+- `model_engine`
+- `model_fallback_used`
+- `model_warning`
 
 ## 8. Telegram 推送协议
 
@@ -202,6 +215,7 @@ python -m app.jobs.run_report --market cn --date 2026-03-04 --no-telegram
 ## 9. GitHub Actions 自动化
 
 ## 9.1 Workflow 文件
+- `.github/workflows/ci.yml`
 - `.github/workflows/daily_cn.yml`
 - `.github/workflows/daily_hk.yml`
 - `.github/workflows/daily_us.yml`
@@ -213,6 +227,8 @@ python -m app.jobs.run_report --market cn --date 2026-03-04 --no-telegram
 - `daily_hk.yml`: `30 9 * * 1-5`（北京时间工作日 17:30）
 - `daily_us.yml`: `30 23 * * 1-5`（北京时间次日 07:30）
 - 以上为自动定时运行：CN/HK 为北京时间工作日；US 为北京时间周二到周六早晨（覆盖美股前一交易日）
+- `ci.yml`: `push` / `pull_request` 执行全量 `python -m pytest`
+- 日报与重训练 workflow 会先跑固定 smoke tests，再进入正式任务
 - `weekly_retrain.yml`: 周日定时
 - 使用 GitHub Hosted Runner 时，默认无法连到你本机 Ollama；Ollama 建议本地跑或用 self-hosted runner
 - `deploy_pages.yml`: 在 `docs/**` 或 `pages_data/**` 变更后自动发布 GitHub Pages（文档 + 每日案例）

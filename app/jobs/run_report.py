@@ -60,6 +60,15 @@ def _critical_failure_msg(exc: Exception, language: str) -> str:
     return f"关键链路失败: {exc}"
 
 
+def _model_warning(bundle: ModelBundle, language: str) -> str | None:
+    if not bundle.fallback_used:
+        return None
+    reason = (bundle.fallback_reason or bundle.engine or "fallback").strip()
+    if _is_en(language):
+        return f"Fallback model in use ({bundle.engine}). Reason: {reason}."
+    return f"当前使用降级模型（{bundle.engine}）。原因：{reason}。"
+
+
 def _build_case_pages_url(cfg: AppConfig, market: str, asof_date: str, language: str) -> str | None:
     base_url = (cfg.pages_site_base_url or "").strip().rstrip("/")
     if not base_url:
@@ -248,6 +257,9 @@ def main() -> int:
         save_debug_frames(cfg.outputs_root, market, asof_date, train_frame, predict_frame)
 
         bundle = _resolve_model_bundle(cfg, market, asof_date, feature_frame)
+        model_warning = _model_warning(bundle, report_language)
+        if model_warning:
+            logger.warning("Report uses fallback model market=%s model=%s reason=%s", market, bundle.engine, bundle.fallback_reason)
 
         predictions = build_predictions(
             market=market,
@@ -422,6 +434,7 @@ def main() -> int:
             market_summary=market_summary_text,
             language=report_language,
             pages_url=case_pages_url,
+            model_warning=model_warning,
         )
 
         details_md = "\n\n---\n\n".join([detail for _, detail in detail_blocks])
@@ -454,6 +467,9 @@ def main() -> int:
             search_provider_fallback="brave",
             start_time=start_ts,
             end_time=end_ts,
+            model_engine=bundle.engine,
+            model_fallback_used=bundle.fallback_used,
+            model_warning=model_warning,
         )
 
         output_dir = cfg.outputs_root / market / asof_str
@@ -502,6 +518,9 @@ def main() -> int:
             search_provider_fallback="brave",
             start_time=start_ts,
             end_time=end_ts,
+            model_engine="",
+            model_fallback_used=False,
+            model_warning=None,
         )
 
         output_dir = cfg.outputs_root / market / asof_str

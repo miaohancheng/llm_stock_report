@@ -22,6 +22,9 @@ class ExportCaseTest(unittest.TestCase):
                         "run_id": "abc123",
                         "status": "success",
                         "model_version": "cn_20260305_test",
+                        "model_engine": "linear-fallback-small-universe",
+                        "model_fallback_used": True,
+                        "model_warning": "当前使用降级模型（linear-fallback-small-universe）。原因：small-universe。",
                         "llm_model": "openai:gpt-4o-mini",
                         "success_symbols": 3,
                         "total_symbols": 4,
@@ -39,6 +42,8 @@ class ExportCaseTest(unittest.TestCase):
             self.assertIn("[CN] 2026-03-05 Daily Case", content)
             self.assertIn("## Summary", content)
             self.assertIn("## Details", content)
+            self.assertIn("model_engine", content)
+            self.assertIn("model_warning", content)
 
             index_path = root / "pages_data" / "cases_index.json"
             self.assertTrue(index_path.exists())

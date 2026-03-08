@@ -3,8 +3,7 @@ from __future__ import annotations
 import logging
 from urllib.parse import urlparse
 
-import requests
-
+from app.common.http_retry import request_with_retry
 from app.common.schemas import NewsItem
 
 logger = logging.getLogger(__name__)
@@ -25,8 +24,14 @@ def search_brave(api_key: str, query: str, max_results: int = 5) -> list[NewsIte
         "freshness": "pw",
     }
 
-    response = requests.get(url, headers=headers, params=params, timeout=20)
-    response.raise_for_status()
+    response = request_with_retry(
+        method="GET",
+        url=url,
+        provider_name="brave",
+        timeout_seconds=20,
+        headers=headers,
+        params=params,
+    )
     data = response.json()
 
     raw_results = data.get("web", {}).get("results", [])
