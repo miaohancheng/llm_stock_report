@@ -30,17 +30,22 @@ class ReportLanguageTest(unittest.TestCase):
             )
             (root / "config" / "universe.yaml").write_text(yaml.safe_dump({"cn": ["SH600519"]}), encoding="utf-8")
 
-            cfg = load_config(root)
-            self.assertEqual("en", cfg.report_language)
-            self.assertEqual("https://example.com/site", cfg.pages_site_base_url)
+            isolated_env = dict(os.environ)
+            for key in ("REPORT_LANGUAGE", "PAGES_SITE_BASE_URL"):
+                isolated_env.pop(key, None)
 
-            with patch.dict(os.environ, {"REPORT_LANGUAGE": "zh"}, clear=False):
-                cfg2 = load_config(root)
-                self.assertEqual("zh", cfg2.report_language)
+            with patch.dict(os.environ, isolated_env, clear=True):
+                cfg = load_config(root)
+                self.assertEqual("en", cfg.report_language)
+                self.assertEqual("https://example.com/site", cfg.pages_site_base_url)
 
-            with patch.dict(os.environ, {"REPORT_LANGUAGE": "invalid"}, clear=False):
-                cfg3 = load_config(root)
-                self.assertEqual("zh", cfg3.report_language)
+                with patch.dict(os.environ, {"REPORT_LANGUAGE": "zh"}, clear=False):
+                    cfg2 = load_config(root)
+                    self.assertEqual("zh", cfg2.report_language)
+
+                with patch.dict(os.environ, {"REPORT_LANGUAGE": "invalid"}, clear=False):
+                    cfg3 = load_config(root)
+                    self.assertEqual("zh", cfg3.report_language)
 
     def test_summary_render_in_english(self) -> None:
         pred = PredictionRecord(
