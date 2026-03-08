@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from app.common.decision_policy import baseline_decision, baseline_trend
 from app.common.schemas import MarketNarrative, PredictionRecord, RunMeta, StockNarrative
 
 
@@ -70,21 +71,11 @@ def _decision_icon(decision: str) -> str:
 
 
 def _default_decision(prediction: PredictionRecord) -> str:
-    if prediction.side == "top" and prediction.score > 0.8:
-        return "买入"
-    if prediction.side == "bottom" and prediction.score < -0.8:
-        return "卖出"
-    if prediction.side == "bottom":
-        return "减仓"
-    return "观望"
+    return baseline_decision(prediction)
 
 
 def _default_trend(prediction: PredictionRecord) -> str:
-    if prediction.side == "top":
-        return "看多"
-    if prediction.side == "bottom":
-        return "看空"
-    return "震荡"
+    return baseline_trend(prediction)
 
 
 def _side_label(side: str, language: str) -> str:

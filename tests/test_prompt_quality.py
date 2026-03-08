@@ -34,6 +34,7 @@ class PromptQualityTest(unittest.TestCase):
         self.assertIn("confidence", prompt)
         self.assertIn("evidence_used", prompt)
         self.assertIn("reliability_notes", prompt)
+        self.assertIn("量化基线判断", prompt)
 
 
 if __name__ == "__main__":

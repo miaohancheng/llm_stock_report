@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from app.common.decision_policy import baseline_decision, baseline_trend, calibrate_decision
 from app.common.schemas import MarketNarrative, NewsItem, PredictionRecord, StockNarrative
 from app.llm.base import LLMClient, LLMError
 from app.llm.prompts import build_market_reasoning_prompt, build_stock_reasoning_prompt, get_system_prompt
@@ -69,13 +70,7 @@ def _normalize_decision(raw: str, prediction: PredictionRecord) -> str:
     value = canonical.get((raw or "").strip().lower(), None) or canonical.get((raw or "").strip(), None)
     if value:
         return value
-    if prediction.side == "top" and prediction.score > 0.8:
-        return "买入"
-    if prediction.side == "bottom" and prediction.score < -0.8:
-        return "卖出"
-    if prediction.side == "bottom":
-        return "减仓"
-    return "观望"
+    return baseline_decision(prediction)
 
 
 def _normalize_trend(raw: str, prediction: PredictionRecord) -> str:
@@ -92,11 +87,7 @@ def _normalize_trend(raw: str, prediction: PredictionRecord) -> str:
     value = canonical.get((raw or "").strip().lower(), None) or canonical.get((raw or "").strip(), None)
     if value:
         return value
-    if prediction.side == "top":
-        return "看多"
-    if prediction.side == "bottom":
-        return "看空"
-    return "震荡"
+    return baseline_trend(prediction)
 
 
 def _normalize_urgency(raw: str, confidence: int) -> str:
@@ -387,6 +378,12 @@ def generate_stock_narrative(
     action_bias = _normalize_bias(str(parsed.get("action_bias") or ""), prediction)
     confidence = _clamp_confidence(parsed.get("confidence"))
     decision = _normalize_decision(str(parsed.get("decision") or ""), prediction)
+    decision = calibrate_decision(
+        prediction=prediction,
+        decision=decision,
+        action_bias=action_bias,
+        confidence=confidence,
+    )
     trend = _normalize_trend(str(parsed.get("trend") or ""), prediction)
     urgency = _normalize_urgency(str(parsed.get("urgency") or ""), confidence)
     evidence_used = parsed.get("evidence_used") or []

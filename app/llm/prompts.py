@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from app.common.decision_policy import baseline_decision, baseline_trend
 from app.common.schemas import NewsItem, PredictionRecord
 
 
@@ -34,6 +35,35 @@ def build_stock_reasoning_prompt(
     language: str = "zh",
 ) -> str:
     language = (language or "zh").strip().lower()
+    quant_decision = baseline_decision(prediction)
+    quant_trend = baseline_trend(prediction)
+
+    if language == "en":
+        decision_map = {
+            "买入": "Buy",
+            "观望": "Hold",
+            "减仓": "Trim",
+            "卖出": "Sell",
+            "卖出/观望": "Sell/Hold",
+        }
+        trend_map = {
+            "看多": "Bullish",
+            "震荡": "Sideways",
+            "看空": "Bearish",
+            "强烈看空": "Strong Bearish",
+        }
+        anchor_line = (
+            "Quant baseline action anchor: "
+            f"{decision_map.get(quant_decision, quant_decision)} / {trend_map.get(quant_trend, quant_trend)}. "
+            "Use it as the starting hypothesis from the model ranking. "
+            "Only downgrade to Hold or reverse it if technical or news evidence clearly contradicts the ranking."
+        )
+    else:
+        anchor_line = (
+            f"量化基线判断: {quant_decision} / {quant_trend}。"
+            "请把它当作模型排序给出的起点判断；只有当技术面或新闻证据明确冲突时，才下调到观望或反向结论。"
+        )
+
     ordered_features = sorted(feature_snapshot.items(), key=lambda x: x[0])
     feature_lines = [f"- {k}: {v:.6f}" for k, v in ordered_features]
     feature_block = "\n".join(feature_lines) if feature_lines else (
@@ -68,6 +98,7 @@ Predicted score (score): {prediction.score:.6f}
 Predicted return (pred_return): {prediction.pred_return:.6f}
 Rank: {prediction.rank}
 Long/short label (side): {prediction.side}
+{anchor_line}
 
 Technical snapshot:
 {feature_block}
@@ -90,6 +121,7 @@ Output requirements (all required):
 9) evidence_used only allows N1/N2... references from provided news; empty array if none
 10) reliability_notes should explain evidence/data reliability limits
 11) If earnings/guidance/results appear in news, prioritize them in details and catalysts
+12) Do not default to Hold only because uncertainty exists; the decision should still reflect the ranking side unless evidence clearly contradicts it
 
 Output JSON only:
 {{
@@ -117,6 +149,7 @@ Output JSON only:
 预测收益(pred_return): {prediction.pred_return:.6f}
 排名: {prediction.rank}
 	多空标签(side): {prediction.side}
+{anchor_line}
 
 	技术面快照:
 	{feature_block}
@@ -139,6 +172,7 @@ Output JSON only:
 9) evidence_used 只允许填 [N1], [N2] 这类已提供编号；无新闻则填空数组
 10) reliability_notes 给出数据可靠性说明（例如“仅技术面”“新闻时效不足”）
 11) 如果新闻中包含财报/业绩/指引信息，优先在 details 与 catalysts 中体现
+12) 不要因为“存在不确定性”就默认写成观望，decision 仍应反映当前排序方向，除非证据明确冲突
 
 仅输出 JSON，格式如下：
 {{

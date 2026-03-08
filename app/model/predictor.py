@@ -40,12 +40,13 @@ def build_predictions(
     out["rank"] = out.index + 1
 
     total = len(out)
+    bucket_n = 1 if total <= 1 else min(max(1, int(top_n)), total // 2)
     records: list[PredictionRecord] = []
     for _, row in out.iterrows():
         rank = int(row["rank"])
-        if rank <= top_n:
+        if rank <= bucket_n:
             side = "top"
-        elif rank > total - top_n:
+        elif rank > total - bucket_n:
             side = "bottom"
         else:
             side = "neutral"

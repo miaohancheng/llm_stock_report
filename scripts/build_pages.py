@@ -13,6 +13,7 @@ except Exception:  # pragma: no cover
 
 
 SUPPORTED_LANGS = ("zh", "en")
+DEFAULT_REPO_URL = "https://github.com/miaohancheng/llm_stock_report"
 
 
 def _normalize_lang(value: str | None) -> str:
@@ -29,6 +30,7 @@ def _i18n(lang: str) -> dict[str, str]:
             "nav_home": "Home",
             "nav_docs": "Docs",
             "nav_cases": "Daily Cases",
+            "nav_repo": "GitHub",
             "switch_label": "中文",
             "docs_title": "Detailed Usage Docs",
             "docs_desc": "Rendered from repository markdown files and updated with code changes.",
@@ -58,6 +60,7 @@ def _i18n(lang: str) -> dict[str, str]:
         "nav_home": "首页",
         "nav_docs": "使用文档",
         "nav_cases": "每日案例",
+        "nav_repo": "GitHub项目",
         "switch_label": "English",
         "docs_title": "详细使用文档",
         "docs_desc": "以下文档由仓库内 Markdown 自动渲染，随代码更新。",
@@ -196,6 +199,7 @@ def _page_template(
         <a class="{nav_home}" href="{root_prefix}{lang}/index.html">{strings['nav_home']}</a>
         <a class="{nav_docs}" href="{root_prefix}{lang}/docs.html">{strings['nav_docs']}</a>
         <a class="{nav_cases}" href="{root_prefix}{lang}/cases.html">{strings['nav_cases']}</a>
+        <a href="{DEFAULT_REPO_URL}" target="_blank" rel="noreferrer">{strings['nav_repo']}</a>
         <a class="lang-switch" href="{switch_href}">{strings['switch_label']}</a>
       </nav>
     </section>

@@ -86,9 +86,11 @@ class BuildPagesTest(unittest.TestCase):
             self.assertIn("中文完整指南", zh_docs)
             self.assertIn("GitHub Actions 配置（中文）", zh_docs)
             self.assertIn("参数速查", zh_docs)
+            self.assertIn("https://github.com/miaohancheng/llm_stock_report", zh_docs)
             self.assertIn("English Full Guide", en_docs)
             self.assertIn("GitHub Actions Setup (EN)", en_docs)
             self.assertIn("Parameter Quick Reference", en_docs)
+            self.assertIn("https://github.com/miaohancheng/llm_stock_report", en_docs)
 
             self.assertTrue((out / "zh" / "cases" / "cn-2026-03-05.html").exists())
             self.assertTrue((out / "en" / "cases" / "cn-2026-03-05.html").exists())
