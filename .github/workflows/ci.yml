@@ -27,6 +27,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e '.[dev]'
+          python -m pip show lightgbm scikit-learn
 
       - name: Run test suite
         run: |
