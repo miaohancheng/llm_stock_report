@@ -1,5 +1,17 @@
 [
   {
+    "id": "us-2026-04-02",
+    "market": "us",
+    "date": "2026-04-02",
+    "title": "[US] 2026-04-02 Daily Case",
+    "path": "cases/us/2026-04-02.md",
+    "summary_line": "> [US] 共分析 3 只股票 | 🟢买入:1 🟡观望:1 🟠减仓:0 🔴卖出:1",
+    "status": "success",
+    "success_symbols": 3,
+    "total_symbols": 3,
+    "updated_at": "2026-04-01T23:58:38+00:00"
+  },
+  {
     "id": "us-2026-04-01",
     "market": "us",
     "date": "2026-04-01",
