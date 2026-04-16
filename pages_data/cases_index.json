@@ -12,6 +12,18 @@
     "updated_at": "2026-04-16T00:09:51+00:00"
   },
   {
+    "id": "cn-2026-04-16",
+    "market": "cn",
+    "date": "2026-04-16",
+    "title": "[CN] 2026-04-16 Daily Case",
+    "path": "cases/cn/2026-04-16.md",
+    "summary_line": "> [CN] 共分析 4 只股票 | 🟢买入:1 🟡观望:1 🟠减仓:1 🔴卖出:1",
+    "status": "success",
+    "success_symbols": 4,
+    "total_symbols": 4,
+    "updated_at": "2026-04-16T09:38:47+00:00"
+  },
+  {
     "id": "us-2026-04-15",
     "market": "us",
     "date": "2026-04-15",
