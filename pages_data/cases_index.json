@@ -1,5 +1,17 @@
 [
   {
+    "id": "hk-2026-11-14",
+    "market": "hk",
+    "date": "2026-11-14",
+    "title": "[HK] 2026-11-14 Daily Case",
+    "path": "cases/hk/2026-11-14.md",
+    "summary_line": "> [HK] 共分析 4 只股票 | 🟢买入:2 🟡观望:0 🟠减仓:0 🔴卖出:2",
+    "status": "success",
+    "success_symbols": 4,
+    "total_symbols": 4,
+    "updated_at": "2026-11-13T17:20:08+00:00"
+  },
+  {
     "id": "us-2026-11-13",
     "market": "us",
     "date": "2026-11-13",
